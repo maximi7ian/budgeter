@@ -45,7 +45,7 @@ export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
 
     <!-- Header -->
     <tr>
-      <td style="padding: 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+      <td style="padding: 24px; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);">
         <h1 style="margin: 0 0 6px 0; font-size: 28px; font-weight: 800; color: #ffffff;">
           💰 ${data.periodLabel}
         </h1>

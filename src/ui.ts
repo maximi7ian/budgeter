@@ -334,7 +334,8 @@ export function renderLoginPage(error?: string): string {
  */
 export function renderSettingsPage(success?: string, error?: string): string {
   const env = process.env;
-  const emailConfigured = !!(env.GMAIL_USER && env.GMAIL_APP_PASSWORD) || !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS);
+  // Check for Gmail OAuth2 or basic SMTP configuration
+  const emailConfigured = !!(env.GMAIL_USER && env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET && env.GMAIL_REFRESH_TOKEN) || !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS);
   const aiConfigured = !!env.OPENAI_API_KEY;
   const sheetsConfigured = !!env.GOOGLE_SHEETS_SPREADSHEET_ID;
   const weeklySchedule = !!env.WEEKLY_CRON_SCHEDULE;

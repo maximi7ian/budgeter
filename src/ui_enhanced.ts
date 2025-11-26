@@ -9,10 +9,15 @@ import { generateBaseCSS, renderHeader, renderFooter, COLORS, SPACING, BORDER_RA
 
 /**
  * Render enhanced transactions page with budget insights and visual breakdowns
+ * Now fully generalized to support weekly, monthly, and custom date ranges
  */
 export function renderEnhancedTransactionsPage(output: TransactionOutput): string {
-  const isWeekly = output.window.mode === "weekly";
-  const budget = isWeekly ? getWeeklyAllowance() : getMonthlyAllowance();
+  // Use the budget passed from the server (calculated based on mode and date range)
+  const budget = output.budget.amount;
+  const budgetSource = output.budget.source;
+  const days = output.budget.days;
+  const dailyRate = output.budget.dailyRate;
+
   const largeThreshold = getLargeTransactionThreshold();
   const aiConfigured = !!process.env.OPENAI_API_KEY;
 
@@ -47,13 +52,32 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
   // Group transactions by date
   const transactionsByDate = groupTransactionsByDate(regularTransactions);
 
+  // Generate page title based on mode
+  const pageTitle = output.window.mode === 'custom'
+    ? `Custom Report (${output.window.from} to ${output.window.to})`
+    : output.window.mode === 'weekly'
+    ? 'Weekly Transactions'
+    : 'Monthly Transactions';
+
+  // Generate heading for the page
+  const pageHeading = output.window.mode === 'custom'
+    ? `📋 Custom Budget Report`
+    : output.window.mode === 'weekly'
+    ? '📅 Weekly Transactions'
+    : '📊 Monthly Transactions';
+
+  // Generate period subtitle
+  const periodSubtitle = output.window.mode === 'custom'
+    ? `${days} days: ${output.window.from} (inclusive) to ${output.window.to} (exclusive)`
+    : `${output.window.from} to ${output.window.to}`;
+
   return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${isWeekly ? "Weekly" : "Monthly"} Transactions</title>
+      <title>${pageTitle}</title>
       <style>
         ${generateBaseCSS()}
         
@@ -105,8 +129,8 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
         <main>
           <div class="flex justify-between items-center mb-4" style="flex-wrap: wrap; gap: ${SPACING.md};">
             <div>
-              <h1 style="font-size: 2rem; margin-bottom: 0;">${isWeekly ? "📅 Weekly" : "📊 Monthly"} Overview</h1>
-              <p style="color: ${COLORS.text.muted};">${output.window.from} → ${output.window.to}</p>
+              <h1 style="font-size: 2rem; margin-bottom: 0;">${pageHeading}</h1>
+              <p style="color: ${COLORS.text.muted};">${periodSubtitle}</p>
             </div>
             <div class="badge ${isOverBudget ? 'badge-danger' : 'badge-success'}" style="font-size: 1rem; padding: 0.5rem 1rem;">
               ${isOverBudget ? "⚠️ Over Budget" : "✓ On Track"}
@@ -117,7 +141,10 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
           <div class="glass-card" style="margin-bottom: ${SPACING.xl}; ${isOverBudget ? `border-left: 4px solid ${COLORS.danger};` : `border-left: 4px solid ${COLORS.success};`}">
             <div class="flex justify-between items-center mb-4">
               <h3 style="margin: 0;">Budget Status</h3>
-              <span style="color: ${COLORS.text.muted}; font-size: 0.9rem;">Allowance: £${budget.toFixed(2)}</span>
+              <span style="color: ${COLORS.text.muted}; font-size: 0.9rem;">
+                ${budgetSource === 'custom' ? 'Custom Budget' : budgetSource === 'calculated' ? 'Calculated Budget' : 'Allowance'}: £${budget.toFixed(2)}
+                ${budgetSource === 'calculated' ? ` (£${dailyRate.toFixed(2)}/day × ${days} days)` : ''}
+              </span>
             </div>
 
             <div style="margin-bottom: ${SPACING.lg};">
@@ -170,7 +197,7 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
 
           <!-- Main Content Grid -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: ${SPACING.lg}; margin-bottom: ${SPACING.xl};">
-            ${aiConfigured ? `
+            ${aiConfigured && output.window.mode !== 'custom' ? `
             <!-- AI Insights Section -->
             <section class="glass-card" id="ai-insights-section">
               <h3 style="margin-bottom: ${SPACING.md}; display: flex; align-items: center; gap: ${SPACING.sm};">

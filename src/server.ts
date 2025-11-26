@@ -14,6 +14,7 @@ import { generateTokenFilename, saveToken, listTokenFiles } from "./tokenStore";
 import { isAuthEnabled, verifyCredentials, requireAuth, redirectIfAuthenticated } from "./auth";
 import { startScheduler } from "./scheduler";
 import { sendBudgetAlertForPeriod } from "./alertService";
+import { calculateBudgetForPeriod } from "./budgetCalculator";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -328,12 +329,16 @@ app.get("/transactions", requireAuth, async (req: Request, res: Response) => {
         }
       }
 
+      // Calculate budget for this period
+      const budget = calculateBudgetForPeriod(dateWindow.from, dateWindow.to, validWindow);
+
       output = {
         window: {
           mode: validWindow,
           from: dateWindow.from,
           to: dateWindow.to,
         },
+        budget,
         accounts,
         transactions,
         excludedExpenses,
@@ -400,13 +405,15 @@ app.get("/transactions/custom", requireAuth, async (req: Request, res: Response)
     if (MODE === "dummy") {
       console.log("📦 Using dummy data (MODE=dummy)");
       output = getDummyData("weekly");
-      // Update window to custom dates
+      // Update window and budget for custom dates
+      const budget = calculateBudgetForPeriod(start, end, "custom", customBudget);
       output.window = {
         mode: "custom" as const,
         from: start,
         to: end,
         customBudget,
       };
+      output.budget = budget;
     } else {
       // Check if any tokens exist
       const tokenFiles = await listTokenFiles();
@@ -454,6 +461,9 @@ app.get("/transactions/custom", requireAuth, async (req: Request, res: Response)
         }
       }
 
+      // Calculate budget for custom period
+      const budget = calculateBudgetForPeriod(start, end, "custom", customBudget);
+
       output = {
         window: {
           mode: "custom" as const,
@@ -461,6 +471,7 @@ app.get("/transactions/custom", requireAuth, async (req: Request, res: Response)
           to: end,
           customBudget,
         },
+        budget,
         accounts,
         transactions,
         excludedExpenses,
@@ -678,9 +689,10 @@ app.post("/api/preview-email", requireAuth, async (req: Request, res: Response) 
 
     // Filter excluded expenses
     const { fetchExcludedExpenses, isSheetsConfigured } = await import("./sheets");
+    let excludedExpenses: any[] = [];
     if (isSheetsConfigured()) {
       try {
-        const excludedExpenses = await fetchExcludedExpenses();
+        excludedExpenses = await fetchExcludedExpenses();
         const { filterExcludedExpenses } = await import("./email/excludedExpensesFilter");
         transactions = filterExcludedExpenses(transactions, excludedExpenses, dateWindow);
       } catch (error: any) {
@@ -715,11 +727,13 @@ app.post("/api/preview-email", requireAuth, async (req: Request, res: Response) 
       renderBiggestPurchasesSection,
       renderTopMerchantsSection,
       renderLargeTransactionsSection,
+      renderExcludedExpensesSection,
     } = await import("./email/sections");
 
     const biggestPurchasesHtml = renderBiggestPurchasesSection(biggestPurchases);
     const topMerchantsHtml = renderTopMerchantsSection(topMerchants);
     const largeTransactionsHtml = renderLargeTransactionsSection(largeTransactions);
+    const excludedExpensesHtml = renderExcludedExpensesSection(excludedExpenses);
 
     // Format period label
     const periodLabel = window === "weekly" ? "Weekly" : "Monthly";
@@ -755,6 +769,7 @@ app.post("/api/preview-email", requireAuth, async (req: Request, res: Response) 
       topMerchantsHtml,
       spendingBreakdownHtml: aiResponse.spendingBreakdown,
       largeTransactionsHtml,
+      excludedExpensesHtml,
       advisorAdviceHtml: aiResponse.advice,
     };
 

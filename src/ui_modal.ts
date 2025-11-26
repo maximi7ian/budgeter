@@ -17,7 +17,7 @@ export function renderCustomReportModal(): string {
         <form id="customReportForm" onsubmit="submitCustomReport(event)">
           <div class="modal-body">
             <div class="modal-form-group">
-              <label class="modal-label" for="startDate">Start Date</label>
+              <label class="modal-label" for="startDate">Start Date (Inclusive)</label>
               <input
                 type="date"
                 id="startDate"
@@ -26,11 +26,11 @@ export function renderCustomReportModal(): string {
                 required
                 max="${today}"
               />
-              <div class="modal-hint">Select the beginning of your custom date range</div>
+              <div class="modal-hint">First day to include in the report</div>
             </div>
 
             <div class="modal-form-group">
-              <label class="modal-label" for="endDate">End Date</label>
+              <label class="modal-label" for="endDate">End Date (Exclusive)</label>
               <input
                 type="date"
                 id="endDate"
@@ -39,7 +39,7 @@ export function renderCustomReportModal(): string {
                 required
                 max="${today}"
               />
-              <div class="modal-hint">Select the end of your custom date range</div>
+              <div class="modal-hint">Day AFTER the last day you want included (not included itself)</div>
             </div>
 
             <div class="modal-form-group">

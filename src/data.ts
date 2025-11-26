@@ -489,12 +489,17 @@ export async function fetchAllTransactions(
     }
   }
 
+  // Calculate budget for this period
+  const { calculateBudgetForPeriod } = require("./budgetCalculator");
+  const budget = calculateBudgetForPeriod(window.from, window.to, mode);
+
   return {
     window: {
       from: window.from,
       to: window.to,
       mode,
     },
+    budget,
     accounts: accountSummaries,
     transactions: allTransactions,
     excludedExpenses: reimbursements,
@@ -507,6 +512,8 @@ export async function fetchAllTransactions(
  */
 export function getDummyData(mode: "weekly" | "monthly"): TransactionOutput {
   const window = calculateDateWindow(mode);
+  const { calculateBudgetForPeriod } = require("./budgetCalculator");
+  const budget = calculateBudgetForPeriod(window.from, window.to, mode);
 
   return {
     window: {
@@ -514,6 +521,7 @@ export function getDummyData(mode: "weekly" | "monthly"): TransactionOutput {
       to: window.to,
       mode,
     },
+    budget,
     accounts: [
       {
         kind: "account",

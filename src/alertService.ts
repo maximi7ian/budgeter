@@ -17,7 +17,8 @@ import { filterExcludedExpenses } from "./email/excludedExpensesFilter";
 import {
   renderBiggestPurchasesSection,
   renderTopMerchantsSection,
-  renderLargeTransactionsSection
+  renderLargeTransactionsSection,
+  renderExcludedExpensesSection
 } from "./email/sections";
 import {
   formatMoney,
@@ -166,6 +167,7 @@ export async function sendBudgetAlertForPeriod(
   const biggestPurchasesHtml = renderBiggestPurchasesSection(biggestPurchases);
   const topMerchantsHtml = renderTopMerchantsSection(topMerchants);
   const largeTransactionsHtml = renderLargeTransactionsSection(largeTransactions);
+  const excludedExpensesHtml = renderExcludedExpensesSection(excludedExpenses);
 
   console.log("   ✓ Sections rendered");
 
@@ -204,6 +206,7 @@ export async function sendBudgetAlertForPeriod(
     topMerchantsHtml,
     spendingBreakdownHtml: aiResponse.spendingBreakdown,
     largeTransactionsHtml,
+    excludedExpensesHtml,
     advisorAdviceHtml: aiResponse.advice,
   };
 

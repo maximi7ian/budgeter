@@ -142,6 +142,12 @@ export interface TransactionOutput {
     mode: WindowMode;
     customBudget?: number; // Optional custom budget for custom date ranges
   };
+  budget: {
+    amount: number; // The budget amount for this period
+    source: 'weekly' | 'monthly' | 'custom' | 'calculated'; // Where the budget came from
+    days: number; // Number of days in the period
+    dailyRate: number; // Budget per day (for display/reference)
+  };
   accounts: AccountSummary[];
   transactions: Txn[];
   excludedExpenses?: ExcludedExpenseRow[]; // Optional Google Sheets data

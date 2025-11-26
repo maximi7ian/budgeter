@@ -3,6 +3,15 @@
 ## Overview
 Added custom date range budget reporting with optional budget override functionality.
 
+**Status**: ✅ Successfully merged with `ui-update` branch featuring new design system.
+
+## Merge Summary (Latest)
+The custom report feature has been integrated with the new "Cosmic Glass" design system from the `ui-update` branch:
+- **Modal styles**: Moved from `ui_modal.ts` to `src/ui/design-system.ts` for consistency
+- **UI Integration**: Custom report button added to Quick Actions grid using new design system components
+- **Styling**: All components now use design system tokens (COLORS, SPACING, BORDER_RADIUS, FONTS)
+- **Build Status**: ✅ Successful compilation with zero TypeScript errors
+
 ## Files Changed
 
 ### New Files
@@ -13,6 +22,28 @@ Added custom date range budget reporting with optional budget override functiona
   - Modal CSS and JavaScript handlers
 
 ### Modified Files
+
+#### src/ui/design-system.ts (from ui-update merge)
+- **New file from merge** - Centralized design system
+- Added modal styles (lines 322-477):
+  - `.modal-overlay`, `.modal`, `.modal-header`, `.modal-title`
+  - `.modal-close`, `.modal-body`, `.modal-form-group`, `.modal-label`
+  - `.modal-input`, `.modal-hint`, `.modal-footer`
+  - `.modal-btn`, `.modal-btn-primary`, `.modal-btn-secondary`
+- Uses design tokens: COLORS, SPACING, BORDER_RADIUS, FONTS
+
+#### src/ui_modal.ts
+- **Refactored**: Removed duplicate CSS (now in design-system.ts)
+- Kept only `renderCustomReportModal()` function
+- Modal HTML uses design system CSS classes
+
+#### src/ui.ts
+- **Merged**: Combined ui-update branch with custom report feature
+- Import `renderCustomReportModal` from ui_modal
+- Import design system from `./ui/design-system`
+- Added custom report button to Quick Actions grid (line 206-208)
+- Render modal before footer (line 217)
+- Uses new design system throughout
 
 #### src/types.ts
 - Extended `WindowMode` type: `"weekly" | "monthly" | "custom"`

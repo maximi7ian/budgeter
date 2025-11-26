@@ -139,7 +139,8 @@ export interface TransactionOutput {
   window: {
     from: string;
     to: string;
-    mode: "weekly" | "monthly";
+    mode: WindowMode;
+    customBudget?: number; // Optional custom budget for custom date ranges
   };
   accounts: AccountSummary[];
   transactions: Txn[];
@@ -151,4 +152,4 @@ export interface TransactionOutput {
 /**
  * Window calculation mode
  */
-export type WindowMode = "weekly" | "monthly";
+export type WindowMode = "weekly" | "monthly" | "custom";

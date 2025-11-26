@@ -40,7 +40,7 @@ const API_BASE = process.env.TL_API_BASE || "https://api.truelayer.com";
  * Send budget alert for a specific period
  */
 export async function sendBudgetAlertForPeriod(
-  period: WindowMode,
+  period: "weekly" | "monthly",
   recipient?: string
 ): Promise<void> {
   console.log(`\n${"=".repeat(60)}`);

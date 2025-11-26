@@ -5,6 +5,7 @@
 
 import { AccountSummary, TransactionOutput } from "./types";
 import { ConnectionInfo } from "./data";
+import { MODAL_CSS, renderCustomReportModal } from "./ui_modal";
 
 const CSS = `
   /* ========== Global Reset & Base Styles ========== */
@@ -497,6 +498,8 @@ const CSS = `
   .mt-2 { margin-top: 1rem; }
   .mb-1 { margin-bottom: 0.5rem; }
   .mb-2 { margin-bottom: 1rem; }
+
+  ${MODAL_CSS}
 `;
 
 /**
@@ -1026,6 +1029,11 @@ export function renderHomePage(
                 <div class="action-card-title">Last Month</div>
                 <div class="action-card-desc">View your monthly transactions</div>
               </a>
+              <a href="#" class="action-card" onclick="openCustomReportModal(); return false;">
+                <div class="action-card-icon">📋</div>
+                <div class="action-card-title">Custom Report</div>
+                <div class="action-card-desc">Choose your own date range</div>
+              </a>
               <a href="/link" class="action-card">
                 <div class="action-card-icon">➕</div>
                 <div class="action-card-title">Add More</div>
@@ -1036,6 +1044,8 @@ export function renderHomePage(
         `
         }
       </main>
+
+      ${renderCustomReportModal()}
 
       ${renderFooter()}
     </body>

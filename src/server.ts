@@ -124,7 +124,7 @@ app.post("/send-alert/:period", requireAuth, async (req: Request, res: Response)
   }
 
   try {
-    await sendBudgetAlertForPeriod(period as WindowMode);
+    await sendBudgetAlertForPeriod(period as "weekly" | "monthly");
     res.send(
       renderSettingsPage(
         `${period === "weekly" ? "Weekly" : "Monthly"} budget alert sent successfully!`
@@ -259,7 +259,7 @@ app.get("/callback", requireAuth, async (req: Request, res: Response) => {
  */
 app.get("/transactions", requireAuth, async (req: Request, res: Response) => {
   try {
-    const window = (req.query.window as WindowMode) || "weekly";
+    const window = (req.query.window as string) || "weekly";
 
     if (window !== "weekly" && window !== "monthly") {
       return res.send(
@@ -267,15 +267,17 @@ app.get("/transactions", requireAuth, async (req: Request, res: Response) => {
       );
     }
 
+    const validWindow = window as "weekly" | "monthly";
+
     console.log(`\n${"=".repeat(60)}`);
-    console.log(`🚀 Fetching ${window} transactions`);
+    console.log(`🚀 Fetching ${validWindow} transactions`);
     console.log("=".repeat(60));
 
     let output;
 
     if (MODE === "dummy") {
       console.log("📦 Using dummy data (MODE=dummy)");
-      output = getDummyData(window);
+      output = getDummyData(validWindow);
     } else {
       // Check if any tokens exist
       const tokenFiles = await listTokenFiles();
@@ -289,7 +291,7 @@ app.get("/transactions", requireAuth, async (req: Request, res: Response) => {
       }
 
       // Get date window
-      const dateWindow = calculateDateWindow(window);
+      const dateWindow = calculateDateWindow(validWindow);
 
       // Fetch from all tokens
       const { items, transactions } = await listAllTransactionsFromAllTokens(
@@ -328,7 +330,7 @@ app.get("/transactions", requireAuth, async (req: Request, res: Response) => {
 
       output = {
         window: {
-          mode: window,
+          mode: validWindow,
           from: dateWindow.from,
           to: dateWindow.to,
         },
@@ -350,6 +352,126 @@ app.get("/transactions", requireAuth, async (req: Request, res: Response) => {
     res.send(renderEnhancedTransactionsPage(output));
   } catch (error: any) {
     console.error("❌ Error fetching transactions:", error);
+    res.send(renderErrorPage("Transaction Fetch Failed", error.message));
+  }
+});
+
+/**
+ * GET /transactions/custom - Custom date range transactions
+ */
+app.get("/transactions/custom", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const start = req.query.start as string;
+    const end = req.query.end as string;
+    const customBudget = req.query.budget ? parseFloat(req.query.budget as string) : undefined;
+
+    if (!start || !end) {
+      return res.send(
+        renderErrorPage("Invalid Parameters", "Start and end dates are required")
+      );
+    }
+
+    // Validate date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(start) || !dateRegex.test(end)) {
+      return res.send(
+        renderErrorPage("Invalid Date Format", "Dates must be in YYYY-MM-DD format")
+      );
+    }
+
+    // Validate end date is not before start date
+    if (new Date(end) < new Date(start)) {
+      return res.send(
+        renderErrorPage("Invalid Date Range", "End date must be after start date")
+      );
+    }
+
+    console.log(`\n${"=".repeat(60)}`);
+    console.log(`🚀 Fetching custom transactions: ${start} to ${end}`);
+    if (customBudget) {
+      console.log(`💰 Custom budget: £${customBudget.toFixed(2)}`);
+    } else {
+      console.log(`💰 Auto-calculating budget based on daily rate`);
+    }
+    console.log("=".repeat(60));
+
+    let output;
+
+    if (MODE === "dummy") {
+      console.log("📦 Using dummy data (MODE=dummy)");
+      output = getDummyData("weekly");
+      // Update window to custom dates
+      output.window = {
+        mode: "custom" as const,
+        from: start,
+        to: end,
+        customBudget,
+      };
+    } else {
+      // Check if any tokens exist
+      const tokenFiles = await listTokenFiles();
+      if (tokenFiles.length === 0) {
+        return res.send(
+          renderErrorPage(
+            "Not Authenticated",
+            "Please connect your banks first by clicking 'Connect Banks' on the home page."
+          )
+        );
+      }
+
+      // Fetch from all tokens with custom date range
+      const { items, transactions } = await listAllTransactionsFromAllTokens(
+        CLIENT_ID,
+        CLIENT_SECRET,
+        TOKEN_URL,
+        start,
+        end,
+        API_BASE
+      );
+
+      // Convert items to account summaries
+      const accounts = items.map((item) => ({
+        kind: item.kind,
+        id: item.kind === "account" ? item.account_id : item.card_id,
+        provider: item.provider,
+        type: item.kind === "account" ? item.account_type : item.card_type,
+        display_name: item.display_name,
+        currency: item.currency,
+      }));
+
+      // Fetch excluded expenses with error handling
+      const { fetchExcludedExpenses, isSheetsConfigured } = await import("./sheets");
+      let excludedExpenses: any[] = [];
+      let sheetsError: string | undefined;
+
+      if (isSheetsConfigured()) {
+        try {
+          excludedExpenses = await fetchExcludedExpenses();
+        } catch (error: any) {
+          console.warn("⚠️  Failed to fetch excluded expenses:", error.message);
+          sheetsError = error.message;
+          // Continue without excluded expenses
+        }
+      }
+
+      output = {
+        window: {
+          mode: "custom" as const,
+          from: start,
+          to: end,
+          customBudget,
+        },
+        accounts,
+        transactions,
+        excludedExpenses,
+        reimbursements: excludedExpenses, // Backward compatibility
+        sheetsError,
+      };
+    }
+
+    res.send(renderEnhancedTransactionsPage(output));
+  } catch (error: any) {
+    console.error("❌ Error fetching custom transactions:", error);
     res.send(renderErrorPage("Transaction Fetch Failed", error.message));
   }
 });
@@ -391,6 +513,8 @@ app.post("/api/generate-insights", requireAuth, async (req: Request, res: Respon
       });
     }
 
+    const validWindow = window as "weekly" | "monthly";
+
     // Check if OpenAI is configured
     if (!process.env.OPENAI_API_KEY) {
       return res.status(200).json({
@@ -400,13 +524,13 @@ app.post("/api/generate-insights", requireAuth, async (req: Request, res: Respon
       });
     }
 
-    console.log(`\n🤖 Generating AI insights for ${window} period...`);
+    console.log(`\n🤖 Generating AI insights for ${validWindow} period...`);
 
     // Get transactions and calculate data
     let transactions, dateWindow;
 
     if (MODE === "dummy") {
-      const output = getDummyData(window as WindowMode);
+      const output = getDummyData(validWindow);
       transactions = output.transactions;
       dateWindow = output.window;
     } else {
@@ -418,7 +542,7 @@ app.post("/api/generate-insights", requireAuth, async (req: Request, res: Respon
         });
       }
 
-      dateWindow = calculateDateWindow(window as WindowMode);
+      dateWindow = calculateDateWindow(validWindow);
       const result = await listAllTransactionsFromAllTokens(
         CLIENT_ID,
         CLIENT_SECRET,
@@ -515,19 +639,21 @@ app.post("/api/preview-email", requireAuth, async (req: Request, res: Response) 
       });
     }
 
+    const validWindow = window as "weekly" | "monthly";
+
     if (!aiResponse || !aiResponse.categories || !aiResponse.spendingBreakdown || !aiResponse.advice) {
       return res.status(400).json({
         error: "Missing required AI response data",
       });
     }
 
-    console.log(`\n📧 Generating email preview for ${window} period...`);
+    console.log(`\n📧 Generating email preview for ${validWindow} period...`);
 
     // Get transactions and calculate data (same as generate-insights)
     let transactions, dateWindow;
 
     if (MODE === "dummy") {
-      const output = getDummyData(window as WindowMode);
+      const output = getDummyData(validWindow);
       transactions = output.transactions;
       dateWindow = output.window;
     } else {
@@ -538,7 +664,7 @@ app.post("/api/preview-email", requireAuth, async (req: Request, res: Response) 
         });
       }
 
-      dateWindow = calculateDateWindow(window as WindowMode);
+      dateWindow = calculateDateWindow(validWindow);
       const result = await listAllTransactionsFromAllTokens(
         CLIENT_ID,
         CLIENT_SECRET,

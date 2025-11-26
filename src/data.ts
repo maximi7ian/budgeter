@@ -323,7 +323,7 @@ async function fetchCardTransactions(
 /**
  * Calculate date window based on mode
  */
-export function calculateDateWindow(mode: WindowMode): { from: string; to: string } {
+export function calculateDateWindow(mode: "weekly" | "monthly"): { from: string; to: string } {
   const now = new Date();
 
   if (mode === "weekly") {
@@ -399,7 +399,7 @@ function normalizeTransaction(
  * Fetch all transactions for all connected items
  */
 export async function fetchAllTransactions(
-  mode: WindowMode,
+  mode: "weekly" | "monthly",
   clientId: string,
   clientSecret: string,
   tokenUrl: string,
@@ -505,7 +505,7 @@ export async function fetchAllTransactions(
 /**
  * Get dummy data for testing
  */
-export function getDummyData(mode: WindowMode): TransactionOutput {
+export function getDummyData(mode: "weekly" | "monthly"): TransactionOutput {
   const window = calculateDateWindow(mode);
 
   return {

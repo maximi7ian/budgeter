@@ -7,7 +7,7 @@ import "dotenv/config";
 import express, { Request, Response } from "express";
 import session from "express-session";
 import { generateAuthLink, exchangeCodeForToken } from "./truelayer";
-import { getDummyData, listAllConnectedItemsFromAllTokens, listAllTransactionsFromAllTokens, calculateDateWindow, getAllConnections, disconnectConnection } from "./data";
+import { getDummyData, listAllConnectedItemsFromAllTokens, listAllTransactionsFromAllTokens, calculateDateWindow, getAllConnections, disconnectConnection, capDateForAPI } from "./data";
 import { renderHomePage, renderErrorPage, renderLoginPage, renderSettingsPage, renderEnhancedTransactionsPage } from "./ui";
 import { WindowMode } from "./types";
 import { generateTokenFilename, saveToken, listTokenFiles } from "./tokenStore";
@@ -294,13 +294,13 @@ app.get("/transactions", requireAuth, async (req: Request, res: Response) => {
       // Get date window
       const dateWindow = calculateDateWindow(validWindow);
 
-      // Fetch from all tokens
+      // Fetch from all tokens (cap "to" date to avoid future dates)
       const { items, transactions } = await listAllTransactionsFromAllTokens(
         CLIENT_ID,
         CLIENT_SECRET,
         TOKEN_URL,
         dateWindow.from,
-        dateWindow.to,
+        capDateForAPI(dateWindow.to), // Cap to today to avoid API errors
         API_BASE
       );
 
@@ -426,13 +426,13 @@ app.get("/transactions/custom", requireAuth, async (req: Request, res: Response)
         );
       }
 
-      // Fetch from all tokens with custom date range
+      // Fetch from all tokens with custom date range (cap "to" date to avoid future dates)
       const { items, transactions } = await listAllTransactionsFromAllTokens(
         CLIENT_ID,
         CLIENT_SECRET,
         TOKEN_URL,
         start,
-        end,
+        capDateForAPI(end), // Cap to today to avoid API errors
         API_BASE
       );
 
@@ -559,7 +559,7 @@ app.post("/api/generate-insights", requireAuth, async (req: Request, res: Respon
         CLIENT_SECRET,
         TOKEN_URL,
         dateWindow.from,
-        dateWindow.to,
+        capDateForAPI(dateWindow.to), // Cap to today to avoid API errors
         API_BASE
       );
       transactions = result.transactions;
@@ -681,7 +681,7 @@ app.post("/api/preview-email", requireAuth, async (req: Request, res: Response) 
         CLIENT_SECRET,
         TOKEN_URL,
         dateWindow.from,
-        dateWindow.to,
+        capDateForAPI(dateWindow.to), // Cap to today to avoid API errors
         API_BASE
       );
       transactions = result.transactions;

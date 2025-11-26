@@ -4,7 +4,7 @@
  */
 
 import { WindowMode, ExcludedExpenseRow } from "./types";
-import { calculateDateWindow, listAllTransactionsFromAllTokens, getDummyData } from "./data";
+import { calculateDateWindow, listAllTransactionsFromAllTokens, getDummyData, capDateForAPI } from "./data";
 import { sendBudgetEmail } from "./email";
 import { getWeeklyAllowance, getMonthlyAllowance, getLargeTransactionThreshold } from "./config";
 import { fetchExcludedExpenses, isSheetsConfigured } from "./sheets";
@@ -66,7 +66,7 @@ export async function sendBudgetAlertForPeriod(
       CLIENT_SECRET,
       TOKEN_URL,
       dateWindow.from,
-      dateWindow.to,
+      capDateForAPI(dateWindow.to), // Cap to today to avoid API errors
       API_BASE
     );
     transactions = result.transactions;

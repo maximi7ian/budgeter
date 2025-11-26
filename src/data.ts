@@ -327,26 +327,54 @@ export function calculateDateWindow(mode: "weekly" | "monthly"): { from: string;
   const now = new Date();
 
   if (mode === "weekly") {
+    // Weekly: last N days (from is inclusive, to is exclusive)
+    // Example: if today is Nov 26 and weeklyDays=7, we want Nov 20-26
+    // from = Nov 20 (inclusive), to = Nov 27 (exclusive, so Nov 26 is the last day included)
     const weeklyDays = parseInt(process.env.WEEKLY_DAYS || "7", 10);
     const from = new Date(now);
-    from.setDate(from.getDate() - (weeklyDays - 1)); // 7 days => go back 6
+    from.setDate(from.getDate() - (weeklyDays - 1)); // Go back (N-1) days to include today
+
+    const to = new Date(now);
+    to.setDate(to.getDate() + 1); // Tomorrow (exclusive, so today is included)
 
     return {
       from: from.toISOString().split("T")[0],
-      to: now.toISOString().split("T")[0],
+      to: to.toISOString().split("T")[0],
     };
   } else {
-    // monthly: previous full month
+    // Monthly: previous full month (from is inclusive, to is exclusive)
+    // Example: for October 2024, from = Oct 1 (inclusive), to = Nov 1 (exclusive)
+    // Use UTC dates to avoid timezone issues
     const monthlyMonths = parseInt(process.env.MONTHLY_MONTHS || "1", 10);
 
-    const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - monthlyMonths, 1);
-    const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - monthlyMonths + 1, 0);
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth();
+
+    const startOfPrevMonth = new Date(Date.UTC(year, month - monthlyMonths, 1));
+    const endOfPrevMonth = new Date(Date.UTC(year, month - monthlyMonths + 1, 1)); // First day of next month (exclusive)
 
     return {
       from: startOfPrevMonth.toISOString().split("T")[0],
       to: endOfPrevMonth.toISOString().split("T")[0],
     };
   }
+}
+
+/**
+ * Cap the "to" date at today to avoid future dates (TrueLayer API doesn't accept future dates)
+ * This adjusts the exclusive "to" date for API calls while maintaining the logical exclusive behavior
+ */
+export function capDateForAPI(dateStr: string): string {
+  const date = new Date(dateStr);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // End of today
+
+  if (date > today) {
+    // If the date is in the future, cap it at today
+    return today.toISOString().split("T")[0];
+  }
+
+  return dateStr;
 }
 
 /**

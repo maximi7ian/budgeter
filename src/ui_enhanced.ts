@@ -67,9 +67,10 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
     : '📊 Monthly Transactions';
 
   // Generate period subtitle
+  // Always show inclusive/exclusive for clarity across all modes
   const periodSubtitle = output.window.mode === 'custom'
     ? `${days} days: ${output.window.from} (inclusive) to ${output.window.to} (exclusive)`
-    : `${output.window.from} to ${output.window.to}`;
+    : `${days} days: ${output.window.from} (inclusive) to ${output.window.to} (exclusive)`;
 
   return `
     <!DOCTYPE html>

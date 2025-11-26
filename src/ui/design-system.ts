@@ -476,11 +476,87 @@ export function generateBaseCSS(): string {
       border-color: rgba(255, 255, 255, 0.2);
     }
 
+    /* Dropdown */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropdown-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: ${SPACING.xs};
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: calc(100% + ${SPACING.xs});
+      left: 0;
+      min-width: 200px;
+      background: ${COLORS.bg.card};
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: ${BORDER_RADIUS.lg};
+      box-shadow: ${SHADOWS.lg};
+      padding: ${SPACING.xs};
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1000;
+    }
+
+    .dropdown:hover .dropdown-menu,
+    .dropdown-menu.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .dropdown-item {
+      display: block;
+      width: 100%;
+      padding: ${SPACING.sm} ${SPACING.md};
+      color: ${COLORS.text.main};
+      text-decoration: none;
+      border-radius: ${BORDER_RADIUS.md};
+      transition: all 0.15s;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    .dropdown-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: ${COLORS.primary.light};
+      transform: translateX(4px);
+    }
+
+    .dropdown-item.active {
+      background: rgba(79, 70, 229, 0.15);
+      color: ${COLORS.primary.light};
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: ${SPACING.xs} 0;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .app-container { padding: ${SPACING.md}; }
       h1 { font-size: 2rem; }
       .glass-card { padding: ${SPACING.md}; }
+
+      .dropdown-menu {
+        min-width: 160px;
+        right: 0;
+        left: auto;
+      }
     }
   `;
 }
@@ -489,10 +565,17 @@ export function generateBaseCSS(): string {
  * Render common header
  */
 export function renderHeader(currentPage: string, userName?: string): string {
+  // Determine active report type (weekly, monthly, custom, or none)
+  const isWeekly = currentPage === 'transactions' && userName === 'weekly';
+  const isMonthly = currentPage === 'transactions' && userName === 'monthly';
+  const isCustom = currentPage === 'transactions' && userName === 'custom';
+  const isReportPage = isWeekly || isMonthly || isCustom;
+
   return `
     <header class="glass-card" style="margin-bottom: ${SPACING.xl}; padding: ${SPACING.md} ${SPACING.lg}; border-radius: ${BORDER_RADIUS.xl};">
       <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: ${SPACING.md};">
-        <div class="flex items-center gap-2">
+        <!-- Logo/Brand -->
+        <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: ${SPACING.sm};">
           <div style="font-size: 2rem; background: linear-gradient(135deg, ${COLORS.primary.light}, ${COLORS.accent.light}); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
             💰
           </div>
@@ -500,25 +583,47 @@ export function renderHeader(currentPage: string, userName?: string): string {
             <h1 style="font-size: 1.5rem; margin: 0; background: linear-gradient(to right, white, ${COLORS.gray[400]}); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
               Budgeter
             </h1>
-            <p style="font-size: 0.8rem; color: ${COLORS.text.muted}; margin: 0;">Smart Finance Tracking</p>
+            <p style="font-size: 0.75rem; color: ${COLORS.text.muted}; margin: 0;">Smart Finance Tracking</p>
           </div>
-        </div>
-        
-        <nav class="flex gap-2" style="flex-wrap: wrap;">
+        </a>
+
+        <!-- Navigation -->
+        <nav class="flex gap-2" style="flex-wrap: wrap; align-items: center;">
+          <!-- Home Link -->
           <a href="/" class="btn ${currentPage === 'home' ? 'btn-primary' : 'btn-secondary'}">
-            🏠 Home
+            🏠 <span style="display: inline-block;">Home</span>
           </a>
-          <a href="/transactions?window=weekly" class="btn ${currentPage === 'transactions' && !userName?.includes('monthly') ? 'btn-primary' : 'btn-secondary'}">
-            📅 Weekly
-          </a>
-          <a href="/transactions?window=monthly" class="btn ${currentPage === 'transactions' && userName?.includes('monthly') ? 'btn-primary' : 'btn-secondary'}">
-            📊 Monthly
-          </a>
+
+          <!-- Budget Reports Dropdown -->
+          <div class="dropdown">
+            <button class="btn dropdown-toggle ${isReportPage ? 'btn-primary' : 'btn-secondary'}">
+              📊 Reports
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" style="opacity: 0.7;">
+                <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+              </svg>
+            </button>
+            <div class="dropdown-menu">
+              <a href="/transactions?window=weekly" class="dropdown-item ${isWeekly ? 'active' : ''}">
+                📅 Weekly Report
+              </a>
+              <a href="/transactions?window=monthly" class="dropdown-item ${isMonthly ? 'active' : ''}">
+                📊 Monthly Report
+              </a>
+              <div class="dropdown-divider"></div>
+              <a href="javascript:void(0)" onclick="openCustomReportModal()" class="dropdown-item ${isCustom ? 'active' : ''}">
+                📋 Custom Report...
+              </a>
+            </div>
+          </div>
+
+          <!-- Settings Link -->
           <a href="/settings" class="btn ${currentPage === 'settings' ? 'btn-primary' : 'btn-secondary'}">
-            ⚙️ Settings
+            ⚙️ <span style="display: inline-block;">Settings</span>
           </a>
+
+          <!-- Logout (if authenticated) -->
           ${userName ? `
-            <a href="/logout" class="btn btn-secondary" style="padding: 0.75rem;">
+            <a href="/logout" class="btn btn-secondary" style="padding: 0.75rem;" title="Logout">
               🚪
             </a>
           ` : ''}

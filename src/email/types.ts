@@ -38,6 +38,7 @@ export interface BudgetEmailTemplateData {
   topMerchantsHtml: string;       // HTML fragment
   spendingBreakdownHtml: string;  // AI-generated spending breakdown (replaces categoryBreakdownHtml)
   largeTransactionsHtml: string;  // Large transactions excluded from budget
+  excludedExpensesHtml: string;   // Excluded expenses (work reimbursements etc)
   advisorAdviceHtml: string;      // HTML fragment from OpenAI
 }
 

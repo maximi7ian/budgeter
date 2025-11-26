@@ -4,6 +4,7 @@
  */
 
 import { Purchase, MerchantTotal, CategoryTotal } from "./types";
+import { ExcludedExpenseRow } from "../types";
 
 /**
  * Render biggest purchases section - compact list format
@@ -91,6 +92,25 @@ export function renderLargeTransactionsSection(purchases: Purchase[]): string {
       <span style="font-weight: 600; color: #92400e;">${escapeHtml(p.merchant)}</span>
       <span style="color: #78350f;"> · ${p.amountFormatted}</span>
       <div style="font-size: 11px; color: #a16207; margin-top: 2px;">${escapeHtml(p.description)}</div>
+    </div>
+  `).join('');
+
+  return items;
+}
+
+/**
+ * Render excluded expenses section (work reimbursements etc)
+ */
+export function renderExcludedExpensesSection(expenses: ExcludedExpenseRow[]): string {
+  if (expenses.length === 0) {
+    return '';
+  }
+
+  const items = expenses.map(e => `
+    <div style="margin-bottom: 4px;">
+      <span style="font-weight: 600; color: #374151;">${escapeHtml(e.vendor)}</span>
+      <span style="color: #6b7280;"> · £${e.amountGBP.toFixed(2)}</span>
+      <div style="font-size: 11px; color: #9ca3af; margin-top: 2px;">${escapeHtml(e.note || '')}</div>
     </div>
   `).join('');
 

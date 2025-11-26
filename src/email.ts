@@ -1,0 +1,170 @@
+/**
+ * Email sending functionality using Nodemailer
+ */
+
+import nodemailer from "nodemailer";
+
+/**
+ * Check if email is configured
+ */
+export function isEmailConfigured(): boolean {
+  return !!(
+    process.env.SMTP_HOST &&
+    process.env.SMTP_PORT &&
+    process.env.SMTP_USER &&
+    process.env.SMTP_PASS
+  );
+}
+
+/**
+ * Get email recipients (prioritize env, can be comma-separated list)
+ * Returns comma-separated string of email addresses
+ */
+export function getEmailRecipients(): string | undefined {
+  // Get from environment variable (can be comma-separated)
+  const envEmails = process.env.ALERT_EMAIL_TO;
+
+  if (!envEmails) {
+    return undefined;
+  }
+
+  // Return as-is (will be used in email "to" field, supports comma-separated)
+  return envEmails.trim();
+}
+
+/**
+ * Get email recipients as array
+ */
+export function getEmailRecipientsArray(): string[] {
+  const recipients = getEmailRecipients();
+
+  if (!recipients) {
+    return [];
+  }
+
+  // Split by comma and trim whitespace
+  return recipients
+    .split(',')
+    .map(email => email.trim())
+    .filter(email => email.length > 0);
+}
+
+/**
+ * Validate email configuration before sending
+ */
+export function validateEmailSetup(): { valid: boolean; error?: string } {
+  // Check SMTP configuration
+  if (!isEmailConfigured()) {
+    return {
+      valid: false,
+      error: "SMTP not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS in .env",
+    };
+  }
+
+  // Check recipient
+  const recipients = getEmailRecipients();
+  if (!recipients) {
+    return {
+      valid: false,
+      error: "No recipient email configured. Set ALERT_EMAIL_TO in .env (can be comma-separated list)",
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Create nodemailer transporter
+ */
+function createTransporter() {
+  if (!isEmailConfigured()) {
+    throw new Error(
+      "Email not configured. Please set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS in .env"
+    );
+  }
+
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || "587"),
+    secure: process.env.SMTP_PORT === "465", // true for 465, false for other ports
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+}
+
+/**
+ * Send budget alert email
+ */
+export async function sendBudgetEmail(
+  subject: string,
+  htmlContent: string,
+  recipient?: string
+): Promise<void> {
+  // Step 1: Check what email addresses to use
+  // Priority: 1. Explicit recipient parameter, 2. Environment variable (comma-separated)
+  const to = recipient || getEmailRecipients();
+
+  console.log("📧 Email sending process:");
+  console.log(`   Step 1: Checking recipient address(es)...`);
+
+  if (!to) {
+    const errorMsg = "No email recipients configured. Please set ALERT_EMAIL_TO in .env (can be comma-separated list)";
+    console.error(`   ❌ ${errorMsg}`);
+    throw new Error(errorMsg);
+  }
+
+  const recipientArray = to.split(',').map(e => e.trim()).filter(e => e);
+  console.log(`   ✓ Recipients (${recipientArray.length}): ${recipientArray.join(', ')}`);
+  console.log(`   Step 2: Validating SMTP configuration...`);
+
+  if (!isEmailConfigured()) {
+    const errorMsg = "SMTP not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS in .env";
+    console.error(`   ❌ ${errorMsg}`);
+    throw new Error(errorMsg);
+  }
+
+  console.log(`   ✓ SMTP configured: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
+  console.log(`   Step 3: Creating email transporter...`);
+
+  const transporter = createTransporter();
+
+  console.log(`   ✓ Transporter created`);
+  console.log(`   Step 4: Preparing email message...`);
+
+  const mailOptions = {
+    from: `"Budgeter" <${process.env.MAIL_FROM}>`,
+    to,
+    subject,
+    html: htmlContent,
+  };
+
+  console.log(`   ✓ Subject: ${subject}`);
+  console.log(`   Step 5: Sending email...`);
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`   ✅ Email sent successfully!`);
+    console.log(`   Message ID: ${info.messageId}`);
+    console.log(`   Response: ${info.response}`);
+  } catch (error: any) {
+    console.error(`   ❌ Failed to send email: ${error.message}`);
+    throw new Error(`Failed to send email: ${error.message}`);
+  }
+}
+
+/**
+ * Verify SMTP connection
+ */
+export async function verifyEmailConnection(): Promise<boolean> {
+  try {
+    const transporter = createTransporter();
+    await transporter.verify();
+    console.log("✅ SMTP connection verified");
+    return true;
+  } catch (error: any) {
+    console.error("❌ SMTP connection failed:", error.message);
+    return false;
+  }
+}

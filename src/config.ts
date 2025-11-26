@@ -32,3 +32,28 @@ export function getLargeTransactionThreshold(): number {
   const value = process.env.LARGE_TRANSACTION_THRESHOLD;
   return value ? parseFloat(value) : 100;
 }
+
+/**
+ * Get list of excluded account/card IDs from environment
+ * Returns array of account_id or card_id values that should be excluded from budget calculations
+ * Example: TL_EXCLUDE_ACCOUNTS=account123,card456,account789
+ */
+export function getExcludedAccounts(): string[] {
+  const value = process.env.TL_EXCLUDE_ACCOUNTS;
+  if (!value || value.trim() === '') {
+    return [];
+  }
+  // Split by comma and trim whitespace
+  return value
+    .split(',')
+    .map(id => id.trim())
+    .filter(id => id.length > 0);
+}
+
+/**
+ * Check if an account/card ID should be excluded from budget calculations
+ */
+export function isAccountExcluded(accountId: string): boolean {
+  const excludedIds = getExcludedAccounts();
+  return excludedIds.includes(accountId);
+}

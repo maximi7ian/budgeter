@@ -651,9 +651,16 @@ export async function listAllConnectedItemsFromAllTokens(
       // Fetch items for this token
       const items = await listConnectedItems(accessToken, apiBase);
 
-      // Add to results, deduplicating by ID
+      // Add to results, deduplicating by ID and filtering excluded accounts
       for (const item of items) {
         const id = item.kind === "account" ? item.account_id : item.card_id;
+
+        // Check if this account/card should be excluded
+        const { isAccountExcluded } = await import("./config");
+        if (isAccountExcluded(id)) {
+          console.log(`  🚫 Excluded ${item.kind}: ${item.display_name} (${id})`);
+          continue;
+        }
 
         if (!seenIds.has(id)) {
           seenIds.add(id);
@@ -714,6 +721,13 @@ export async function listAllTransactionsFromAllTokens(
       // Process each item
       for (const item of items) {
         const id = item.kind === "account" ? item.account_id : item.card_id;
+
+        // Check if this account/card should be excluded
+        const { isAccountExcluded } = await import("./config");
+        if (isAccountExcluded(id)) {
+          console.log(`  🚫 Excluding account/card from budget: ${id} (${item.display_name})`);
+          continue; // Skip excluded accounts entirely
+        }
 
         // Add to items list (dedupe)
         if (!seenItemIds.has(id)) {

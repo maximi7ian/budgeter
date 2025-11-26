@@ -7,6 +7,7 @@ import { AccountSummary, TransactionOutput } from "./types";
 import { ConnectionInfo } from "./data";
 import { generateBaseCSS, renderHeader, renderFooter, COLORS, SPACING, BORDER_RADIUS, FONTS } from "./ui/design-system";
 import { renderCustomReportModal } from "./ui_modal";
+import { isAccountExcluded } from "./config";
 
 // Import and re-export enhanced transactions page
 import { renderEnhancedTransactionsPage } from "./ui_enhanced";
@@ -71,28 +72,102 @@ export function renderHomePage(
       const providerIcon = getProviderIcon(conn.providers[0] || '');
       const itemsHtml = conn.items.map((item) => {
         const typeBadge = getAccountTypeBadge(item.kind, item.display_name);
+        // Get the ID (account_id or card_id)
+        const itemId = item.kind === 'account'
+          ? (item as any).account_id
+          : (item as any).card_id;
+
+        // Check if this account is excluded
+        const isExcluded = isAccountExcluded(itemId);
+
         return `
           <div style="
-            background: rgba(15, 23, 42, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: ${isExcluded ? 'rgba(15, 23, 42, 0.2)' : 'rgba(15, 23, 42, 0.4)'};
+            border: 1px solid ${isExcluded ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255, 255, 255, 0.05)'};
             border-radius: ${BORDER_RADIUS.md};
             padding: ${SPACING.sm} ${SPACING.md};
             display: flex;
-            align-items: center;
-            gap: ${SPACING.sm};
+            flex-direction: column;
+            gap: ${SPACING.xs};
             transition: all 0.2s;
+            opacity: ${isExcluded ? '0.6' : '1'};
+            position: relative;
           ">
-            <div style="font-size: 1.25rem;">${typeBadge.emoji}</div>
-            <div style="flex: 1; min-width: 0;">
-              <div style="font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                ${item.display_name}
+            ${isExcluded ? `
+              <div style="
+                position: absolute;
+                top: ${SPACING.xs};
+                right: ${SPACING.xs};
+                background: ${COLORS.danger}20;
+                color: ${COLORS.danger};
+                padding: 0.15rem 0.4rem;
+                border-radius: ${BORDER_RADIUS.sm};
+                font-size: 0.65rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+              ">🚫 Excluded</div>
+            ` : ''}
+            <div style="display: flex; align-items: center; gap: ${SPACING.sm};">
+              <div style="font-size: 1.25rem; ${isExcluded ? 'filter: grayscale(50%);' : ''}">${typeBadge.emoji}</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${item.display_name}
+                </div>
+                <div style="display: flex; gap: ${SPACING.xs}; align-items: center; flex-wrap: wrap;">
+                  <span class="badge" style="background: ${typeBadge.color}20; color: ${typeBadge.color}; font-size: 0.7rem;">
+                    ${typeBadge.label}
+                  </span>
+                  <span style="font-size: 0.75rem; color: ${COLORS.text.muted};">${item.currency}</span>
+                  ${isExcluded ? `
+                    <span style="font-size: 0.7rem; color: ${COLORS.danger}; font-style: italic;">
+                      Not in budget
+                    </span>
+                  ` : ''}
+                </div>
               </div>
-              <div style="display: flex; gap: ${SPACING.xs}; align-items: center;">
-                <span class="badge" style="background: ${typeBadge.color}20; color: ${typeBadge.color}; font-size: 0.7rem;">
-                  ${typeBadge.label}
-                </span>
-                <span style="font-size: 0.75rem; color: ${COLORS.text.muted};">${item.currency}</span>
-              </div>
+            </div>
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: ${SPACING.xs};
+              background: rgba(0, 0, 0, 0.2);
+              padding: ${SPACING.xs} ${SPACING.sm};
+              border-radius: ${BORDER_RADIUS.sm};
+              font-family: 'Monaco', 'Courier New', monospace;
+              font-size: 0.7rem;
+            ">
+              <span style="color: ${COLORS.text.muted}; flex-shrink: 0;">ID:</span>
+              <code style="
+                color: ${COLORS.info};
+                flex: 1;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+              " title="${itemId}">${itemId}</code>
+              <button
+                onclick="navigator.clipboard.writeText('${itemId}').then(() => {
+                  const btn = event.target;
+                  const originalText = btn.textContent;
+                  btn.textContent = '✓';
+                  btn.style.color = '${COLORS.success}';
+                  setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.color = '${COLORS.text.muted}';
+                  }, 1500);
+                });"
+                style="
+                  background: transparent;
+                  border: none;
+                  color: ${COLORS.text.muted};
+                  cursor: pointer;
+                  padding: 0;
+                  font-size: 0.8rem;
+                  transition: color 0.2s;
+                  flex-shrink: 0;
+                "
+                title="Copy ID to clipboard"
+              >📋</button>
             </div>
           </div>
         `;

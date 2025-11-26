@@ -6,61 +6,39 @@
 import { Purchase, MerchantTotal, CategoryTotal } from "./types";
 
 /**
- * Render biggest purchases section
+ * Render biggest purchases section - compact list format
  */
 export function renderBiggestPurchasesSection(purchases: Purchase[]): string {
   if (purchases.length === 0) {
-    return '<p style="margin: 0; color: #6b7280; font-size: 14px;">No large purchases this period.</p>';
+    return '<p style="margin: 0; color: #9ca3af; font-size: 13px;">No large purchases this period.</p>';
   }
 
-  const rows = purchases.map(p => `
-    <tr>
-      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-        <div style="font-weight: 500; color: #111827; margin-bottom: 2px;">${escapeHtml(p.merchant)}</div>
-        <div style="font-size: 13px; color: #6b7280;">${escapeHtml(p.description)}</div>
-      </td>
-      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">
-        <span style="font-weight: 600; color: #111827; font-size: 15px;">${p.amountFormatted}</span>
-      </td>
-    </tr>
+  const items = purchases.map(p => `
+    <div style="margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #f3f4f6;">
+      <div style="font-weight: 600; color: #111827; margin-bottom: 2px;">${escapeHtml(p.merchant)} <span style="font-weight: 700; color: #ef4444;">${p.amountFormatted}</span></div>
+      <div style="font-size: 12px; color: #6b7280;">${escapeHtml(p.description)}</div>
+    </div>
   `).join('');
 
-  return `
-    <table style="width: 100%; border-collapse: collapse;">
-      <tbody>
-        ${rows}
-      </tbody>
-    </table>
-  `;
+  return items;
 }
 
 /**
- * Render top merchants section
+ * Render top merchants section - compact inline format
  */
 export function renderTopMerchantsSection(merchants: MerchantTotal[]): string {
   if (merchants.length === 0) {
-    return '<p style="margin: 0; color: #6b7280; font-size: 14px;">No merchant data available.</p>';
+    return '<p style="margin: 0; color: #9ca3af; font-size: 13px;">No merchant data available.</p>';
   }
 
-  const rows = merchants.map(m => `
-    <tr>
-      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-        <div style="font-weight: 500; color: #111827;">${escapeHtml(m.name)}</div>
-        <div style="font-size: 13px; color: #6b7280;">${m.transactionCount} transaction${m.transactionCount !== 1 ? 's' : ''}</div>
-      </td>
-      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">
-        <span style="font-weight: 600; color: #111827; font-size: 15px;">${m.amountFormatted}</span>
-      </td>
-    </tr>
+  const items = merchants.map(m => `
+    <div style="margin-bottom: 4px;">
+      <span style="font-weight: 600; color: #111827;">${escapeHtml(m.name)}</span>
+      <span style="color: #6b7280;"> · ${m.amountFormatted} · ${m.transactionCount} transaction${m.transactionCount !== 1 ? 's' : ''}</span>
+    </div>
   `).join('');
 
-  return `
-    <table style="width: 100%; border-collapse: collapse;">
-      <tbody>
-        ${rows}
-      </tbody>
-    </table>
-  `;
+  return items;
 }
 
 /**
@@ -101,32 +79,22 @@ export function renderCategoryBreakdownSection(categories: CategoryTotal[]): str
 }
 
 /**
- * Render large transactions section (excluded from budget calculations)
+ * Render large transactions section (excluded from budget calculations) - compact format
  */
 export function renderLargeTransactionsSection(purchases: Purchase[]): string {
   if (purchases.length === 0) {
-    return '<p style="margin: 0; color: #6b7280; font-size: 14px;">No large transactions this period.</p>';
+    return '';
   }
 
-  const rows = purchases.map(p => `
-    <tr>
-      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-        <div style="font-weight: 500; color: #111827; margin-bottom: 2px;">${escapeHtml(p.merchant)}</div>
-        <div style="font-size: 13px; color: #6b7280;">${escapeHtml(p.description)}</div>
-      </td>
-      <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">
-        <span style="font-weight: 600; color: #ef4444; font-size: 15px;">${p.amountFormatted}</span>
-      </td>
-    </tr>
+  const items = purchases.map(p => `
+    <div style="margin-bottom: 4px;">
+      <span style="font-weight: 600; color: #92400e;">${escapeHtml(p.merchant)}</span>
+      <span style="color: #78350f;"> · ${p.amountFormatted}</span>
+      <div style="font-size: 11px; color: #a16207; margin-top: 2px;">${escapeHtml(p.description)}</div>
+    </div>
   `).join('');
 
-  return `
-    <table style="width: 100%; border-collapse: collapse;">
-      <tbody>
-        ${rows}
-      </tbody>
-    </table>
-  `;
+  return items;
 }
 
 /**

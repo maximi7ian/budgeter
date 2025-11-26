@@ -1247,10 +1247,11 @@ export function renderSettingsPage(success?: string, error?: string): string {
           </div>
 
           <!-- Manual Test Emails -->
-          ${emailConfigured && aiConfigured ? `
+          ${emailConfigured ? `
           <h2>✉️ Send Test Email</h2>
           <div class="info-box">
             Test your email alerts manually without waiting for the scheduled time.
+            ${!aiConfigured ? '<br><strong>Note:</strong> OpenAI not configured. Emails will use basic fallback insights instead of AI-generated advice.' : ''}
           </div>
           <div class="actions">
             <form method="POST" action="/send-alert/weekly" style="display: inline;">
@@ -1263,7 +1264,8 @@ export function renderSettingsPage(success?: string, error?: string): string {
           ` : `
           <h2>✉️ Manual Email Alerts</h2>
           <div class="warning-box">
-            Configure OpenAI API and SMTP settings in .env to enable manual email testing.
+            Configure email settings (Gmail OAuth2 or SMTP) in .env to enable manual email testing.
+            ${aiConfigured ? '<br><strong>Note:</strong> OpenAI is configured but email is not. Set up email to send budget summaries.' : '<br><strong>Tip:</strong> For AI-powered insights, also configure OPENAI_API_KEY (optional - basic fallback will be used otherwise).'}
           </div>
           `}
         </div>

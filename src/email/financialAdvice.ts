@@ -316,50 +316,68 @@ function getCategoryEmoji(categoryName: string): string {
 }
 
 /**
- * Generate spending breakdown HTML from categories (UI renders the design)
+ * Generate spending breakdown HTML from categories as 2-column grid (email-safe)
  * This ensures consistent design across UI and email
  */
 function generateSpendingBreakdownHtml(categories: AICategory[]): string {
   if (!categories || categories.length === 0) {
-    return '<p style="color: #6b7280;">No spending data available.</p>';
+    return '<p style="margin: 0; color: #9ca3af; font-size: 13px;">No spending data available.</p>';
   }
 
-  let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
+  // Generate 2-column table for categories
+  let html = '<table role="presentation" width="100%" style="border-collapse: collapse;">';
 
-  categories.forEach(cat => {
-    // Color coding based on percentage
-    const barColor = cat.percentage > 30 ? '#ef4444' : cat.percentage > 15 ? '#f59e0b' : '#667eea';
+  for (let i = 0; i < categories.length; i += 2) {
+    const cat1 = categories[i];
+    const cat2 = categories[i + 1];
 
-    html += '<div class="category-bar">';
+    html += '<tr>';
 
-    // Tooltip with top vendors
-    if (cat.topVendors && cat.topVendors.length > 0) {
-      html += '<div class="category-tooltip">';
-      html += '<div style="font-weight: 600; margin-bottom: 4px;">Top Vendors:</div>';
-      cat.topVendors.forEach((vendor, i) => {
-        html += `<div>${i + 1}. ${escapeHtml(vendor.name)}: £${vendor.amount.toFixed(2)}</div>`;
-      });
-      html += '</div>';
+    // First column
+    html += '<td class="category-col" style="width: 50%; padding: 6px 6px 6px 0; vertical-align: top;">';
+    html += renderCategoryChip(cat1);
+    html += '</td>';
+
+    // Second column (or empty if odd number)
+    if (cat2) {
+      html += '<td class="category-col" style="width: 50%; padding: 6px 0 6px 6px; vertical-align: top;">';
+      html += renderCategoryChip(cat2);
+      html += '</td>';
+    } else {
+      html += '<td class="category-col" style="width: 50%; padding: 6px 0 6px 6px;"></td>';
     }
 
-    // Category name and amount
-    html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';
-    html += `<span style="font-weight: 600; color: #111827; font-size: 15px;">${cat.emoji} ${escapeHtml(cat.name)}</span>`;
-    html += `<span style="font-weight: 700; color: #111827; font-size: 15px;">£${cat.amount.toFixed(2)}</span>`;
-    html += '</div>';
+    html += '</tr>';
+  }
 
-    // Progress bar
-    html += '<div style="display: flex; align-items: center; gap: 12px;">';
-    html += '<div style="flex: 1; background: #e5e7eb; border-radius: 9999px; height: 8px; overflow: hidden;">';
-    html += `<div style="width: ${Math.min(cat.percentage, 100)}%; height: 100%; background: ${barColor};"></div>`;
-    html += '</div>';
-    html += `<span style="font-size: 13px; color: #6b7280; font-weight: 600; min-width: 45px; text-align: right;">${cat.percentage.toFixed(1)}%</span>`;
-    html += '</div>';
+  html += '</table>';
+  return html;
+}
 
-    html += '</div>'; // close category-bar
-  });
+/**
+ * Render a single category as a compact chip/card
+ */
+function renderCategoryChip(cat: AICategory): string {
+  let html = '<div style="background: #f9fafb; border-radius: 8px; padding: 8px 10px; border-left: 3px solid #667eea;">';
+
+  // Category name and amount on one line
+  html += '<div style="font-size: 13px; color: #111827; font-weight: 600; margin-bottom: 3px;">';
+  html += `${cat.emoji} ${escapeHtml(cat.name)} <span style="color: #ef4444;">£${cat.amount.toFixed(2)}</span>`;
+  html += '</div>';
+
+  // Percentage on second line
+  html += '<div style="font-size: 11px; color: #6b7280;">';
+  html += `${cat.percentage.toFixed(1)}%`;
+
+  // Top vendors (if available) - inline, compact
+  if (cat.topVendors && cat.topVendors.length > 0) {
+    const vendorNames = cat.topVendors.map(v => escapeHtml(v.name)).join(', ');
+    html += ` · ${vendorNames}`;
+  }
 
   html += '</div>';
+  html += '</div>';
+
   return html;
 }
 

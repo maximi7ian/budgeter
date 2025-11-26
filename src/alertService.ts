@@ -174,6 +174,18 @@ export async function sendBudgetAlertForPeriod(
   // Step 7: Generate AI financial advice and spending breakdown
   console.log("\n🤖 Step 7: Generating AI analysis...");
 
+  // Prepare all transactions for AI (capped at 100 for token efficiency)
+  const allTransactionsForAI = regularTransactions
+    .filter(t => t.amountGBP < 0) // Only spending transactions
+    .sort((a, b) => a.amountGBP - b.amountGBP) // Sort by amount (biggest first)
+    .slice(0, 100) // Cap at 100 transactions
+    .map(t => ({
+      description: t.description || 'Unknown',
+      merchant: t.merchant || t.description || 'Unknown Merchant',
+      amountFormatted: `£${Math.abs(t.amountGBP).toFixed(2)}`,
+      date: t.postedDate,
+    }));
+
   const adviceInput: AdviceInput = {
     periodLabel: generatePeriodLabel(dateWindow.from, dateWindow.to, period),
     dateRange: formatDateRange(dateWindow.from, dateWindow.to),
@@ -184,6 +196,7 @@ export async function sendBudgetAlertForPeriod(
     biggestPurchases,
     topMerchants,
     categoryTotals,
+    allTransactions: allTransactionsForAI,
   };
 
   const aiResponse = await generateFinancialAdviceAndBreakdown(adviceInput);

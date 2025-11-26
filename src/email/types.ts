@@ -84,4 +84,5 @@ export interface AdviceInput {
   topMerchants: MerchantTotal[];
   categoryTotals: CategoryTotal[];
   previousPeriodSpend?: number;    // optional for trend
+  allTransactions?: Purchase[];    // full transaction list (capped), for more creative AI analysis
 }

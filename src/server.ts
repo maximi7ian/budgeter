@@ -599,6 +599,18 @@ app.post("/api/generate-insights", requireAuth, async (req: Request, res: Respon
     const topMerchants = aggregateByMerchant(regularTransactions, 10);
     const categoryTotals = aggregateByCategory(regularTransactions);
 
+    // Prepare all transactions for AI (capped at 100 for token efficiency)
+    const allTransactionsForAI = regularTransactions
+      .filter(t => t.amountGBP < 0) // Only spending transactions
+      .sort((a, b) => a.amountGBP - b.amountGBP) // Sort by amount (biggest first)
+      .slice(0, 100) // Cap at 100 transactions
+      .map(t => ({
+        description: t.description || 'Unknown',
+        merchant: t.merchant || t.description || 'Unknown Merchant',
+        amountFormatted: `£${Math.abs(t.amountGBP).toFixed(2)}`,
+        date: t.postedDate,
+      }));
+
     // Generate AI response
     const { generateFinancialAdviceAndBreakdown } = await import("./email/financialAdvice");
     const aiResponse = await generateFinancialAdviceAndBreakdown({
@@ -611,6 +623,7 @@ app.post("/api/generate-insights", requireAuth, async (req: Request, res: Respon
       biggestPurchases,
       topMerchants,
       categoryTotals,
+      allTransactions: allTransactionsForAI,
     });
 
     console.log(`✅ AI insights generated successfully`);

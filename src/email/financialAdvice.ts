@@ -172,6 +172,15 @@ export async function generateFinancialAdviceAndBreakdown(input: AdviceInput): P
       .join('\n');
     userPrompt = userPrompt.replace(/\{\{transactionsSummary\}\}/g, transactionsSummary);
 
+    // Build full transaction list for AI analysis (if available)
+    let allTransactionsList = '';
+    if (input.allTransactions && input.allTransactions.length > 0) {
+      allTransactionsList = input.allTransactions
+        .map((t, i) => `${i + 1}. ${t.merchant}: ${t.amountFormatted}${t.date ? ` (${t.date})` : ''}`)
+        .join('\n');
+    }
+    userPrompt = userPrompt.replace(/\{\{allTransactionsList\}\}/g, allTransactionsList);
+
     // Combine user prompt with hard-coded instructions
     const fullPrompt = userPrompt + getHardCodedInstructions();
 
@@ -182,15 +191,15 @@ export async function generateFinancialAdviceAndBreakdown(input: AdviceInput): P
       messages: [
         {
           role: "system",
-          content: "You are a helpful financial advisor. Return responses ONLY as valid JSON with 'categories' (array), 'spendingBreakdown' (HTML string), and 'advice' (HTML string) fields. Do not include markdown code fences."
+          content: "You are a sharp, data-driven financial advisor who is specific and direct. ALWAYS cite actual merchant names and amounts from the transaction data. NO GENERIC ADVICE. Keep responses short and punchy. Return responses ONLY as valid JSON with 'categories' (array), 'spendingBreakdown' (HTML string), and 'advice' (HTML string) fields. Do not include markdown code fences."
         },
         {
           role: "user",
           content: fullPrompt,
         },
       ],
-      temperature: 0.7,
-      max_tokens: 1500,
+      temperature: 0.8,
+      max_tokens: 1200,
     });
 
     const response = completion.choices[0]?.message?.content;

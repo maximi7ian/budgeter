@@ -329,7 +329,7 @@ export function calculateDateWindow(mode: WindowMode): { from: string; to: strin
   if (mode === "weekly") {
     const weeklyDays = parseInt(process.env.WEEKLY_DAYS || "7", 10);
     const from = new Date(now);
-    from.setDate(from.getDate() - weeklyDays);
+    from.setDate(from.getDate() - (weeklyDays - 1)); // 7 days => go back 6
 
     return {
       from: from.toISOString().split("T")[0],

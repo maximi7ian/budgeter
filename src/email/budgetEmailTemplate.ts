@@ -1,10 +1,11 @@
 /**
- * Minimal, Modern Email Template - Focus on Key Stats, Breakdown, and Insights
+ * Universal Budget Email Template for Weekly and Monthly Reports
+ * Used for both weekly and monthly budget summaries with collapsible sections
  */
 
-import { WeeklyEmailTemplateData, AICategory } from "./types";
+import { BudgetEmailTemplateData, AICategory } from "./types";
 
-export function renderWeeklyBudgetEmail(data: WeeklyEmailTemplateData): string {
+export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
   const overUnderColor = data.overUnderType === 'over' ? '#ef4444' : data.overUnderType === 'under' ? '#10b981' : '#6b7280';
   const overUnderBg = data.overUnderType === 'over' ? '#fee2e2' : data.overUnderType === 'under' ? '#d1fae5' : '#f3f4f6';
 
@@ -154,7 +155,7 @@ export function renderWeeklyBudgetEmail(data: WeeklyEmailTemplateData): string {
     <tr>
       <td style="padding: 0 32px 32px 32px;">
         <div style="border-top: 2px solid #f3f4f6; padding-top: 24px;">
-          <details open>
+          <details>
             <summary style="cursor: pointer; font-size: 20px; font-weight: 700; color: #111827; padding: 12px 16px; background: #f9fafb; border-radius: 8px; list-style: none; user-select: none;">
               📊 Spending by Category
             </summary>
@@ -172,7 +173,7 @@ export function renderWeeklyBudgetEmail(data: WeeklyEmailTemplateData): string {
     <tr>
       <td style="padding: 0 32px 32px 32px;">
         <div style="border-top: 2px solid #f3f4f6; padding-top: 24px;">
-          <details open>
+          <details>
             <summary style="cursor: pointer; font-size: 20px; font-weight: 700; color: #111827; padding: 12px 16px; background: #f9fafb; border-radius: 8px; list-style: none; user-select: none;">
               💡 Financial Insights
             </summary>
@@ -187,23 +188,61 @@ export function renderWeeklyBudgetEmail(data: WeeklyEmailTemplateData): string {
     </tr>
     ` : ''}
 
+    ${data.biggestPurchasesHtml ? `
+    <!-- Biggest Purchases -->
+    <tr>
+      <td style="padding: 0 32px 32px 32px;">
+        <div style="border-top: 2px solid #f3f4f6; padding-top: 24px;">
+          <details>
+            <summary style="cursor: pointer; font-size: 18px; font-weight: 600; color: #111827; padding: 12px 16px; background: #f9fafb; border-radius: 8px; list-style: none; user-select: none;">
+              🛍️ Largest Purchases
+            </summary>
+            <div class="details-content" style="padding-top: 12px;">
+              ${data.biggestPurchasesHtml}
+            </div>
+          </details>
+        </div>
+      </td>
+    </tr>
+    ` : ''}
+
+    ${data.topMerchantsHtml ? `
+    <!-- Top Merchants -->
+    <tr>
+      <td style="padding: 0 32px 32px 32px;">
+        <div style="border-top: 2px solid #f3f4f6; padding-top: 24px;">
+          <details>
+            <summary style="cursor: pointer; font-size: 18px; font-weight: 600; color: #111827; padding: 12px 16px; background: #f9fafb; border-radius: 8px; list-style: none; user-select: none;">
+              🏪 Top Merchants
+            </summary>
+            <div class="details-content" style="padding-top: 12px;">
+              ${data.topMerchantsHtml}
+            </div>
+          </details>
+        </div>
+      </td>
+    </tr>
+    ` : ''}
+
     ${data.largeTransactionsHtml ? `
     <!-- Large Transactions Alert -->
     <tr>
       <td style="padding: 0 32px 32px 32px;">
-        <details>
-          <summary style="cursor: pointer; font-size: 16px; font-weight: 600; color: #92400e; padding: 12px 16px; background: #fff3cd; border-radius: 8px; list-style: none; user-select: none; border-left: 4px solid #f59e0b;">
-            ⚠️ Large Transactions Excluded from Budget
-          </summary>
-          <div class="details-content">
-            <div style="padding: 16px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #f59e0b;">
-              <div style="font-size: 14px; color: #78350f; margin-bottom: 12px;">
-                These transactions were excluded from your budget calculations
+        <div style="border-top: 2px solid #f3f4f6; padding-top: 24px;">
+          <details>
+            <summary style="cursor: pointer; font-size: 16px; font-weight: 600; color: #92400e; padding: 12px 16px; background: #fff3cd; border-radius: 8px; list-style: none; user-select: none; border-left: 4px solid #f59e0b;">
+              ⚠️ Large Transactions Excluded from Budget
+            </summary>
+            <div class="details-content">
+              <div style="padding: 16px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                <div style="font-size: 14px; color: #78350f; margin-bottom: 12px;">
+                  These transactions were excluded from your budget calculations
+                </div>
+                ${data.largeTransactionsHtml}
               </div>
-              ${data.largeTransactionsHtml}
             </div>
-          </div>
-        </details>
+          </details>
+        </div>
       </td>
     </tr>
     ` : ''}

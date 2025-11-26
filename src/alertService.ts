@@ -10,8 +10,8 @@ import { getWeeklyAllowance, getMonthlyAllowance, getLargeTransactionThreshold }
 import { fetchExcludedExpenses, isSheetsConfigured } from "./sheets";
 
 // Email template system
-import { renderWeeklyBudgetEmail } from "./email/weeklyBudgetTemplate";
-import { WeeklyEmailTemplateData, AdviceInput } from "./email/types";
+import { renderBudgetEmail } from "./email/budgetEmailTemplate";
+import { BudgetEmailTemplateData, AdviceInput } from "./email/types";
 import { generateFinancialAdviceAndBreakdown } from "./email/financialAdvice";
 import { filterExcludedExpenses } from "./email/excludedExpensesFilter";
 import {
@@ -190,7 +190,7 @@ export async function sendBudgetAlertForPeriod(
   // Step 8: Build template data and render email
   console.log("\n📧 Step 8: Building email from template...");
 
-  const templateData: WeeklyEmailTemplateData = {
+  const templateData: BudgetEmailTemplateData = {
     periodLabel: adviceInput.periodLabel,
     dateRange: adviceInput.dateRange,
     totalSpend: formatMoney(totalSpend),
@@ -207,7 +207,7 @@ export async function sendBudgetAlertForPeriod(
     advisorAdviceHtml: aiResponse.advice,
   };
 
-  const htmlContent = renderWeeklyBudgetEmail(templateData);
+  const htmlContent = renderBudgetEmail(templateData);
   console.log("   ✓ Email HTML generated");
 
   // Step 9: Send email with emoji in subject

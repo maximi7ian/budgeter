@@ -21,9 +21,12 @@ export interface CategoryTotal {
   percentageOfTotal: number;
 }
 
-export interface WeeklyEmailTemplateData {
-  periodLabel: string;       // e.g. "Week of 3–9 March 2025"
-  dateRange: string;          // "3 Mar 2025 – 9 Mar 2025"
+/**
+ * Universal email template data for both weekly and monthly budget reports
+ */
+export interface BudgetEmailTemplateData {
+  periodLabel: string;       // e.g. "Week of 3–9 March 2025" or "March 2025"
+  dateRange: string;          // "3 Mar 2025 – 9 Mar 2025" or "1 Mar 2025 – 31 Mar 2025"
   totalSpend: string;         // formatted, e.g. "£482.10"
   budget: string;             // formatted budget
   overUnderLabel: string;     // e.g. "£17.90 under budget" or "£26.50 over budget"
@@ -37,6 +40,9 @@ export interface WeeklyEmailTemplateData {
   largeTransactionsHtml: string;  // Large transactions excluded from budget
   advisorAdviceHtml: string;      // HTML fragment from OpenAI
 }
+
+// Alias for backward compatibility (deprecated - use BudgetEmailTemplateData)
+export type WeeklyEmailTemplateData = BudgetEmailTemplateData;
 
 /**
  * Vendor within a category

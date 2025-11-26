@@ -614,7 +614,7 @@ app.post("/api/preview-email", requireAuth, async (req: Request, res: Response) 
       : 0;
 
     // Build template data
-    const { renderWeeklyBudgetEmail } = await import("./email/weeklyBudgetTemplate");
+    const { renderBudgetEmail } = await import("./email/budgetEmailTemplate");
     const templateData = {
       periodLabel: `${periodLabel} Budget Summary`,
       dateRange: `${dateWindow.from} – ${dateWindow.to}`,
@@ -632,7 +632,7 @@ app.post("/api/preview-email", requireAuth, async (req: Request, res: Response) 
       advisorAdviceHtml: aiResponse.advice,
     };
 
-    const htmlContent = renderWeeklyBudgetEmail(templateData);
+    const htmlContent = renderBudgetEmail(templateData);
 
     console.log(`✅ Email preview generated successfully`);
 

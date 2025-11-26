@@ -13,6 +13,7 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
   const isWeekly = output.window.mode === "weekly";
   const budget = isWeekly ? getWeeklyAllowance() : getMonthlyAllowance();
   const largeThreshold = getLargeTransactionThreshold();
+  const aiConfigured = !!process.env.OPENAI_API_KEY;
 
   // Separate transactions into regular and large
   const regularTransactions = output.transactions.filter(
@@ -136,6 +137,7 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
 
         <!-- Main Content Grid -->
         <div class="content-grid">
+          ${aiConfigured ? `
           <!-- AI Insights Section -->
           <section class="card" id="ai-insights-section">
             <h3 class="card-title">🤖 AI-Powered Insights</h3>
@@ -160,7 +162,7 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
               <div id="advice-container"></div>
 
               <!-- Preview Email button -->
-              <div style="margin-top: 24px; text-align: center;">
+              <div style="margin-top: 1.5rem; text-align: center;">
                 <button id="preview-email-btn" class="secondary-button">
                   <span class="button-icon">📧</span>
                   <span class="button-text">Preview Budget Email</span>
@@ -168,6 +170,7 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
               </div>
             </div>
           </section>
+          ` : ''}
 
           <!-- Top Merchants -->
           <section class="card">
@@ -206,90 +209,93 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
       <script>
         const periodWindow = '${output.window.mode}';  // 'weekly' or 'monthly'
         let aiResponseData = null;  // Store AI response for email preview
-
+        ${aiConfigured ? `
         // Generate AI Insights
-        document.getElementById('generate-insights-btn').addEventListener('click', async function() {
-          const button = this;
-          const loading = document.getElementById('ai-loading');
-          const error = document.getElementById('ai-error');
-          const placeholder = document.getElementById('ai-insights-placeholder');
-          const content = document.getElementById('ai-insights-content');
+        const generateBtn = document.getElementById('generate-insights-btn');
+        if (generateBtn) {
+          generateBtn.addEventListener('click', async function() {
+            const button = this;
+            const loading = document.getElementById('ai-loading');
+            const error = document.getElementById('ai-error');
+            const placeholder = document.getElementById('ai-insights-placeholder');
+            const content = document.getElementById('ai-insights-content');
 
-          // Show loading state
-          button.style.display = 'none';
-          loading.style.display = 'block';
-          error.style.display = 'none';
+            // Show loading state
+            button.style.display = 'none';
+            loading.style.display = 'block';
+            error.style.display = 'none';
 
-          try {
-            const response = await fetch('/api/generate-insights', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ window: periodWindow })
-            });
+            try {
+              const response = await fetch('/api/generate-insights', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ window: periodWindow })
+              });
 
-            const result = await response.json();
+              const result = await response.json();
 
-            if (!result.success) {
-              throw new Error(result.error || 'Failed to generate insights');
+              if (!result.success) {
+                throw new Error(result.error || 'Failed to generate insights');
+              }
+
+              // Store response data for email preview
+              aiResponseData = result.data;
+
+              // Hide placeholder, show content
+              placeholder.style.display = 'none';
+              content.style.display = 'block';
+
+              // Render categories
+              renderCategories(result.data.categories, result.data.totalSpend);
+
+              // Render advice
+              document.getElementById('advice-container').innerHTML =
+                '<h4 style="margin: 1.5rem 0 0.75rem 0; color: #e2e8f0; font-size: 1rem;">💡 Financial Advice</h4>' +
+                result.data.advice;
+
+            } catch (err) {
+              loading.style.display = 'none';
+              error.style.display = 'block';
+              error.textContent = err.message;
+              button.style.display = 'inline-flex';
+
+              // Check if it's a missing config error
+              if (err.message.includes('OpenAI API key')) {
+                error.innerHTML = '<strong>⚠️ OpenAI Not Configured</strong><br>' +
+                  'Add your OpenAI API key to .env file to use AI insights.<br>' +
+                  '<a href="https://platform.openai.com/api-keys" target="_blank" style="color: #3b82f6;">Get API Key →</a>';
+              }
             }
-
-            // Store response data for email preview
-            aiResponseData = result.data;
-
-            // Hide placeholder, show content
-            placeholder.style.display = 'none';
-            content.style.display = 'block';
-
-            // Render categories
-            renderCategories(result.data.categories, result.data.totalSpend);
-
-            // Render advice
-            document.getElementById('advice-container').innerHTML =
-              '<h4 style="margin: 24px 0 12px 0; color: #1f2937;">💡 Financial Advice</h4>' +
-              result.data.advice;
-
-          } catch (err) {
-            loading.style.display = 'none';
-            error.style.display = 'block';
-            error.textContent = err.message;
-            button.style.display = 'inline-flex';
-
-            // Check if it's a missing config error
-            if (err.message.includes('OpenAI API key')) {
-              error.innerHTML = '<strong>⚠️ OpenAI Not Configured</strong><br>' +
-                'Add your OpenAI API key to .env file to use AI insights.<br>' +
-                '<a href="https://platform.openai.com/api-keys" target="_blank" style="color: #3b82f6;">Get API Key →</a>';
-            }
-          }
-        });
+          });
+        }
 
         // Render categories with progress bars and tooltips
         function renderCategories(categories, totalSpend) {
           if (!categories || categories.length === 0) {
             document.getElementById('categories-container').innerHTML =
-              '<p style="color: #6b7280;">No spending categories available</p>';
+              '<p style="color: #94a3b8;">No spending categories available</p>';
             return;
           }
 
-          let html = '<h4 style="margin: 0 0 8px 0; color: #1f2937;">📊 Spending by Category</h4>';
-          html += '<p style="margin: 0 0 16px 0; font-size: 13px; color: #6b7280;">💡 Hover over categories to see top vendors</p>';
-          html += '<div style="display: flex; flex-direction: column; gap: 16px;">';
+          let html = '<h4 style="margin: 0 0 0.5rem 0; color: #e2e8f0; font-size: 1rem;">📊 Spending by Category</h4>';
+          html += '<p style="margin: 0 0 1rem 0; font-size: 0.8rem; color: #94a3b8;">💡 Hover over categories to see top vendors</p>';
+          html += '<div style="display: flex; flex-direction: column; gap: 1rem;">';
 
           categories.forEach((cat, index) => {
             const color = cat.percentage > 30 ? '#ef4444' : cat.percentage > 15 ? '#f59e0b' : '#3b82f6';
 
             html += \`
-              <div style="display: flex; flex-direction: column; gap: 6px; position: relative; cursor: help;" class="category-item" data-category-index="\${index}">
+              <div style="display: flex; flex-direction: column; gap: 0.375rem; position: relative; cursor: help; padding: 0.75rem; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(148, 163, 184, 0.08); border-radius: 8px;" class="category-item" data-category-index="\${index}">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-weight: 500; color: #1f2937;">
+                  <span style="font-weight: 600; color: #e2e8f0; font-size: 0.85rem;">
                     \${cat.emoji} \${cat.name}
                   </span>
-                  <span style="font-weight: 600; color: #1f2937;">
+                  <span style="font-weight: 700; color: #0ea5e9; font-size: 0.85rem;">
                     £\${cat.amount.toFixed(2)}
                   </span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <div style="flex: 1; background: #e5e7eb; border-radius: 999px; height: 8px; overflow: hidden;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <div style="flex: 1; background: rgba(15, 23, 42, 0.8); border-radius: 999px; height: 8px; overflow: hidden;">
                     <div style="
                       width: \${Math.min(cat.percentage, 100)}%;
                       height: 100%;
@@ -297,7 +303,7 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
                       transition: width 0.3s ease;
                     "></div>
                   </div>
-                  <span style="font-size: 14px; color: #6b7280; min-width: 45px; text-align: right;">
+                  <span style="font-size: 0.8rem; color: #94a3b8; min-width: 45px; text-align: right; font-weight: 600;">
                     \${cat.percentage.toFixed(1)}%
                   </span>
                 </div>
@@ -322,12 +328,12 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
             });
 
             const tooltip = document.createElement('div');
-            tooltip.style.cssText = 'position: absolute; bottom: 100%; left: 0; background: #1f2937; color: white; padding: 10px 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; white-space: nowrap; box-shadow: 0 4px 6px rgba(0,0,0,0.3); margin-bottom: 8px; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 1000;';
+            tooltip.style.cssText = 'position: absolute; bottom: 100%; left: 0; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); color: #e2e8f0; padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.2); font-size: 0.75rem; line-height: 1.5; white-space: nowrap; box-shadow: 0 8px 16px rgba(0,0,0,0.4); margin-bottom: 0.5rem; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 1000;';
             tooltip.innerHTML = tooltipHTML;
 
             // Arrow
             const arrow = document.createElement('div');
-            arrow.style.cssText = 'position: absolute; top: 100%; left: 20px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid #1f2937;';
+            arrow.style.cssText = 'position: absolute; top: 100%; left: 20px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid rgba(15, 23, 42, 0.95);';
             tooltip.appendChild(arrow);
 
             item.appendChild(tooltip);
@@ -343,54 +349,58 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
         }
 
         // Preview Email
-        document.getElementById('preview-email-btn').addEventListener('click', async function() {
-          if (!aiResponseData) {
-            alert('Please generate AI insights first');
-            return;
-          }
-
-          const button = this;
-          const originalText = button.innerHTML;
-          button.disabled = true;
-          button.innerHTML = '<span class="button-icon">⏳</span><span class="button-text">Generating...</span>';
-
-          try {
-            const response = await fetch('/api/preview-email', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                window: periodWindow,
-                aiResponse: {
-                  categories: aiResponseData.categories,
-                  spendingBreakdown: aiResponseData.spendingBreakdown,
-                  advice: aiResponseData.advice
-                }
-              })
-            });
-
-            if (!response.ok) {
-              const error = await response.json();
-              throw new Error(error.error || 'Failed to generate preview');
+        const previewBtn = document.getElementById('preview-email-btn');
+        if (previewBtn) {
+          previewBtn.addEventListener('click', async function() {
+            if (!aiResponseData) {
+              alert('Please generate AI insights first');
+              return;
             }
 
-            const htmlContent = await response.text();
+            const button = this;
+            const originalText = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<span class="button-icon">⏳</span><span class="button-text">Generating...</span>';
 
-            // Open in new window
-            const previewWindow = globalThis.open('', '_blank');
-            if (previewWindow) {
-              previewWindow.document.write(htmlContent);
-              previewWindow.document.close();
-            } else {
-              alert('Please allow popups to preview the email');
+            try {
+              const response = await fetch('/api/preview-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  window: periodWindow,
+                  aiResponse: {
+                    categories: aiResponseData.categories,
+                    spendingBreakdown: aiResponseData.spendingBreakdown,
+                    advice: aiResponseData.advice
+                  }
+                })
+              });
+
+              if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to generate preview');
+              }
+
+              const htmlContent = await response.text();
+
+              // Open in new window
+              const previewWindow = globalThis.open('', '_blank');
+              if (previewWindow) {
+                previewWindow.document.write(htmlContent);
+                previewWindow.document.close();
+              } else {
+                alert('Please allow popups to preview the email');
+              }
+
+            } catch (err) {
+              alert('Error generating preview: ' + err.message);
+            } finally {
+              button.disabled = false;
+              button.innerHTML = originalText;
             }
-
-          } catch (err) {
-            alert('Error generating preview: ' + err.message);
-          } finally {
-            button.disabled = false;
-            button.innerHTML = originalText;
-          }
-        });
+          });
+        }
+        ` : ''}
       </script>
     </body>
     </html>
@@ -574,183 +584,226 @@ function generateEnhancedCSS(): string {
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f9fafb;
-      color: #111827;
+      background: #0a0e27;
+      background-image:
+        radial-gradient(at 20% 30%, rgba(14, 165, 233, 0.08) 0px, transparent 50%),
+        radial-gradient(at 80% 70%, rgba(59, 130, 246, 0.06) 0px, transparent 50%);
+      color: #e2e8f0;
       line-height: 1.6;
+      min-height: 100vh;
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1000px;
       margin: 0 auto;
-      padding: 20px;
+      padding: 1.5rem 1rem;
     }
 
     /* Header */
     .header {
-      background: white;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(148, 163, 184, 0.1);
       border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 24px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 16px rgba(14, 165, 233, 0.08);
     }
 
     .header-content h1 {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 4px;
+      font-size: 1.75rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 50%, #10b981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
     }
 
     .period-label {
-      color: #6b7280;
-      font-size: 14px;
+      color: #94a3b8;
+      font-size: 0.85rem;
     }
 
     .nav {
       display: flex;
-      gap: 12px;
-      margin-top: 16px;
+      gap: 0.625rem;
+      margin-top: 1rem;
       flex-wrap: wrap;
     }
 
     .nav-link {
-      padding: 8px 16px;
+      padding: 0.5rem 1rem;
       border-radius: 6px;
       text-decoration: none;
-      color: #374151;
-      background: #f3f4f6;
-      font-size: 14px;
-      font-weight: 500;
+      color: #94a3b8;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      font-size: 0.85rem;
+      font-weight: 600;
       transition: all 0.2s;
     }
 
     .nav-link:hover {
-      background: #e5e7eb;
+      background: rgba(15, 23, 42, 0.8);
+      border-color: rgba(14, 165, 233, 0.3);
+      color: #e2e8f0;
     }
 
     .nav-link.active {
-      background: #667eea;
+      background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 50%, #10b981 100%);
       color: white;
+      border-color: transparent;
     }
 
     /* Budget Section */
     .budget-section {
-      margin-bottom: 24px;
+      margin-bottom: 1.5rem;
     }
 
     .budget-card {
-      background: white;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(148, 163, 184, 0.1);
       border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 1.25rem;
+      box-shadow: 0 4px 16px rgba(14, 165, 233, 0.08);
     }
 
     .budget-card.over-budget {
       border-left: 4px solid #ef4444;
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.15);
     }
 
     .budget-card.under-budget {
       border-left: 4px solid #10b981;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
     }
 
     .budget-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 20px;
+      margin-bottom: 1.25rem;
     }
 
     .budget-title {
-      font-size: 20px;
+      font-size: 1.25rem;
       font-weight: 700;
+      color: #e2e8f0;
     }
 
     .budget-subtitle {
-      color: #6b7280;
-      font-size: 14px;
+      color: #94a3b8;
+      font-size: 0.85rem;
+      margin-top: 0.25rem;
     }
 
     .budget-status-badge {
-      padding: 6px 12px;
+      padding: 0.5rem 1rem;
       border-radius: 6px;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
     }
 
     .badge-success {
-      background: #d1fae5;
-      color: #065f46;
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
     }
 
     .badge-danger {
-      background: #fee2e2;
-      color: #991b1b;
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
     }
 
     /* Budget Progress */
     .budget-progress-container {
-      margin-bottom: 20px;
+      margin-bottom: 1.25rem;
     }
 
     .budget-progress-bar {
-      height: 16px;
-      background: #e5e7eb;
-      border-radius: 8px;
+      height: 20px;
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: 10px;
       overflow: hidden;
-      margin-bottom: 8px;
+      margin-bottom: 0.75rem;
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      position: relative;
     }
 
     .budget-progress-fill {
       height: 100%;
-      transition: width 0.5s ease;
-      border-radius: 8px;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 10px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: white;
     }
 
     .budget-progress-fill.under {
       background: linear-gradient(90deg, #10b981, #059669);
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
     }
 
     .budget-progress-fill.over {
       background: linear-gradient(90deg, #f59e0b, #ef4444);
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
     }
 
     .budget-labels {
       display: flex;
       justify-content: space-between;
-      font-size: 12px;
-      color: #6b7280;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      font-weight: 600;
     }
 
     .budget-current {
-      font-weight: 600;
-      color: #111827;
+      font-weight: 700;
+      color: #0ea5e9;
+      font-size: 0.8rem;
     }
 
     /* Budget Stats Grid */
     .budget-stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 16px;
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid #e5e7eb;
+      gap: 1rem;
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.1);
     }
 
     .stat {
       text-align: center;
+      padding: 0.75rem;
+      background: rgba(15, 23, 42, 0.4);
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.08);
     }
 
     .stat-label {
-      font-size: 12px;
-      color: #6b7280;
+      font-size: 0.7rem;
+      color: #94a3b8;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 4px;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
     }
 
     .stat-value {
-      font-size: 24px;
+      font-size: 1.5rem;
       font-weight: 700;
-      color: #111827;
+      color: #e2e8f0;
     }
 
     .stat-value.spend { color: #ef4444; }
@@ -760,105 +813,120 @@ function generateEnhancedCSS(): string {
 
     /* Alert */
     .large-transactions-alert {
-      margin-bottom: 24px;
+      margin-bottom: 1.5rem;
     }
 
     .alert-warning {
-      background: #fff3cd;
-      border: 1px solid #fbbf24;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.3);
       border-radius: 8px;
-      padding: 16px;
+      padding: 1rem;
       display: flex;
-      gap: 12px;
+      gap: 0.75rem;
+      backdrop-filter: blur(10px);
     }
 
     .alert-icon {
-      font-size: 24px;
+      font-size: 1.5rem;
+      flex-shrink: 0;
     }
 
     .alert-content strong {
       display: block;
-      margin-bottom: 4px;
-      color: #92400e;
+      margin-bottom: 0.25rem;
+      color: #fbbf24;
+      font-size: 0.95rem;
     }
 
     .alert-content p {
-      color: #78350f;
-      font-size: 14px;
+      color: #cbd5e1;
+      font-size: 0.85rem;
       margin: 0;
     }
 
     /* Content Grid */
     .content-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 24px;
-      margin-bottom: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
     }
 
     /* Card */
     .card {
-      background: white;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(148, 163, 184, 0.1);
       border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      margin-bottom: 24px;
+      padding: 1.25rem;
+      box-shadow: 0 4px 16px rgba(14, 165, 233, 0.08);
+      margin-bottom: 1.5rem;
     }
 
     .card-title {
-      font-size: 18px;
+      font-size: 1.1rem;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 0.5rem;
+      color: #e2e8f0;
     }
 
     .card-subtitle {
-      color: #6b7280;
-      font-size: 14px;
-      margin-bottom: 16px;
+      color: #94a3b8;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
     }
 
     .empty-text {
-      color: #9ca3af;
-      font-size: 14px;
+      color: #64748b;
+      font-size: 0.85rem;
       text-align: center;
-      padding: 20px;
+      padding: 1.25rem;
     }
 
     /* Category List */
     .category-list {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 0.875rem;
     }
 
     .category-item {
-      padding: 12px;
-      background: #f9fafb;
+      padding: 0.75rem;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid rgba(148, 163, 184, 0.08);
       border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .category-item:hover {
+      background: rgba(15, 23, 42, 0.6);
+      border-color: rgba(14, 165, 233, 0.2);
     }
 
     .category-header {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 8px;
+      margin-bottom: 0.5rem;
     }
 
     .category-name {
       font-weight: 600;
-      font-size: 14px;
+      font-size: 0.85rem;
+      color: #e2e8f0;
     }
 
     .category-amount {
       font-weight: 700;
-      font-size: 14px;
+      font-size: 0.85rem;
+      color: #0ea5e9;
     }
 
     .category-bar-bg {
       height: 8px;
-      background: #e5e7eb;
+      background: rgba(15, 23, 42, 0.8);
       border-radius: 4px;
       overflow: hidden;
-      margin-bottom: 4px;
+      margin-bottom: 0.25rem;
     }
 
     .category-bar {
@@ -868,38 +936,46 @@ function generateEnhancedCSS(): string {
     }
 
     .category-percentage {
-      font-size: 12px;
-      color: #6b7280;
+      font-size: 0.75rem;
+      color: #94a3b8;
     }
 
     /* Merchant List */
     .merchant-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 0.75rem;
     }
 
     .merchant-item {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px;
-      background: #f9fafb;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid rgba(148, 163, 184, 0.08);
       border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .merchant-item:hover {
+      background: rgba(15, 23, 42, 0.6);
+      border-color: rgba(14, 165, 233, 0.2);
     }
 
     .merchant-rank {
       width: 28px;
       height: 28px;
-      background: #667eea;
+      background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
       color: white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 0.8rem;
       flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
     }
 
     .merchant-details {
@@ -908,49 +984,55 @@ function generateEnhancedCSS(): string {
 
     .merchant-name {
       font-weight: 600;
-      font-size: 14px;
+      font-size: 0.85rem;
+      color: #e2e8f0;
     }
 
     .merchant-count {
-      font-size: 12px;
-      color: #6b7280;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 0.125rem;
     }
 
     .merchant-amount {
       font-weight: 700;
-      font-size: 15px;
+      font-size: 0.9rem;
+      color: #ef4444;
     }
 
     /* Transactions */
     .transactions-grouped {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 1rem;
     }
 
     .transaction-date-group {
-      border: 1px solid #e5e7eb;
+      border: 1px solid rgba(148, 163, 184, 0.1);
       border-radius: 8px;
       overflow: hidden;
+      background: rgba(15, 23, 42, 0.3);
     }
 
     .date-header {
-      background: #f9fafb;
-      padding: 12px 16px;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 0.75rem 1rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
     }
 
     .date-label {
-      font-weight: 600;
-      font-size: 14px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #0ea5e9;
     }
 
     .date-total {
       font-weight: 700;
       color: #ef4444;
+      font-size: 0.9rem;
     }
 
     .transactions-list {
@@ -962,8 +1044,13 @@ function generateEnhancedCSS(): string {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
-      border-bottom: 1px solid #f3f4f6;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.05);
+      transition: all 0.2s;
+    }
+
+    .transaction-item:hover {
+      background: rgba(15, 23, 42, 0.4);
     }
 
     .transaction-item:last-child {
@@ -971,14 +1058,15 @@ function generateEnhancedCSS(): string {
     }
 
     .transaction-item.large {
-      background: #fff3cd;
+      background: rgba(251, 191, 36, 0.1);
       border-left: 3px solid #f59e0b;
     }
 
     .transaction-date {
-      font-size: 12px;
-      color: #6b7280;
+      font-size: 0.75rem;
+      color: #94a3b8;
       min-width: 80px;
+      font-weight: 600;
     }
 
     .transaction-details {
@@ -987,18 +1075,19 @@ function generateEnhancedCSS(): string {
 
     .transaction-merchant {
       font-weight: 600;
-      font-size: 14px;
-      margin-bottom: 2px;
+      font-size: 0.85rem;
+      margin-bottom: 0.125rem;
+      color: #e2e8f0;
     }
 
     .transaction-provider {
-      font-size: 12px;
-      color: #6b7280;
+      font-size: 0.75rem;
+      color: #64748b;
     }
 
     .transaction-amount {
       font-weight: 700;
-      font-size: 16px;
+      font-size: 0.95rem;
     }
 
     .transaction-amount.negative {
@@ -1011,29 +1100,37 @@ function generateEnhancedCSS(): string {
 
     .transaction-amount.large {
       color: #dc2626;
-      font-size: 18px;
+      font-size: 1.05rem;
     }
 
     /* Excluded Expenses */
     .excluded-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 0.5rem;
     }
 
     .excluded-item {
       display: flex;
-      gap: 12px;
-      padding: 12px;
-      background: #f9fafb;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid rgba(148, 163, 184, 0.08);
       border-radius: 6px;
       align-items: center;
+      transition: all 0.2s;
+    }
+
+    .excluded-item:hover {
+      background: rgba(15, 23, 42, 0.6);
+      border-color: rgba(14, 165, 233, 0.2);
     }
 
     .excluded-date {
-      font-size: 12px;
-      color: #6b7280;
+      font-size: 0.75rem;
+      color: #94a3b8;
       min-width: 80px;
+      font-weight: 600;
     }
 
     .excluded-details {
@@ -1042,18 +1139,20 @@ function generateEnhancedCSS(): string {
 
     .excluded-vendor {
       font-weight: 600;
-      font-size: 14px;
+      font-size: 0.85rem;
+      color: #e2e8f0;
     }
 
     .excluded-note {
-      font-size: 12px;
-      color: #6b7280;
-      margin-top: 2px;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 0.125rem;
     }
 
     .excluded-amount {
       font-weight: 700;
-      color: #6366f1;
+      color: #3b82f6;
+      font-size: 0.9rem;
     }
 
     /* Mobile Responsive */
@@ -1085,22 +1184,23 @@ function generateEnhancedCSS(): string {
     .primary-button {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      gap: 0.5rem;
+      background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 50%, #10b981 100%);
       color: white;
       border: none;
-      padding: 14px 28px;
-      font-size: 16px;
-      font-weight: 600;
+      padding: 0.875rem 1.75rem;
+      font-size: 0.95rem;
+      font-weight: 700;
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.3s ease;
-      box-shadow: 0 4px 6px rgba(102, 126, 234, 0.25);
+      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+      border: 1px solid transparent;
     }
 
     .primary-button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(102, 126, 234, 0.35);
+      box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4);
     }
 
     .primary-button:active {
@@ -1108,7 +1208,7 @@ function generateEnhancedCSS(): string {
     }
 
     .primary-button:disabled {
-      opacity: 0.6;
+      opacity: 0.5;
       cursor: not-allowed;
       transform: none;
     }
@@ -1116,12 +1216,12 @@ function generateEnhancedCSS(): string {
     .secondary-button {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      background: white;
-      color: #667eea;
-      border: 2px solid #667eea;
-      padding: 12px 24px;
-      font-size: 15px;
+      gap: 0.5rem;
+      background: rgba(15, 23, 42, 0.6);
+      color: #0ea5e9;
+      border: 1px solid rgba(14, 165, 233, 0.3);
+      padding: 0.75rem 1.5rem;
+      font-size: 0.9rem;
       font-weight: 600;
       border-radius: 8px;
       cursor: pointer;
@@ -1129,18 +1229,19 @@ function generateEnhancedCSS(): string {
     }
 
     .secondary-button:hover {
-      background: #f3f4f6;
+      background: rgba(15, 23, 42, 0.8);
+      border-color: rgba(14, 165, 233, 0.5);
       transform: translateY(-1px);
     }
 
     .secondary-button:disabled {
-      opacity: 0.6;
+      opacity: 0.5;
       cursor: not-allowed;
       transform: none;
     }
 
     .button-icon {
-      font-size: 18px;
+      font-size: 1.1rem;
     }
 
     .button-text {
@@ -1150,18 +1251,18 @@ function generateEnhancedCSS(): string {
     /* Loading State */
     .loading-state {
       text-align: center;
-      padding: 24px;
-      color: #6b7280;
+      padding: 1.5rem;
+      color: #94a3b8;
     }
 
     .spinner {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #667eea;
+      border: 3px solid rgba(148, 163, 184, 0.2);
+      border-top: 3px solid #0ea5e9;
       border-radius: 50%;
       width: 40px;
       height: 40px;
       animation: spin 1s linear infinite;
-      margin: 0 auto 16px auto;
+      margin: 0 auto 1rem auto;
     }
 
     @keyframes spin {
@@ -1171,19 +1272,21 @@ function generateEnhancedCSS(): string {
 
     /* Error Message */
     .error-message {
-      background: #fee2e2;
-      border: 1px solid #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
       border-radius: 8px;
-      padding: 16px;
-      color: #991b1b;
-      margin-top: 16px;
+      padding: 1rem;
+      color: #fca5a5;
+      margin-top: 1rem;
       line-height: 1.6;
+      backdrop-filter: blur(10px);
     }
 
     .error-message strong {
       display: block;
-      margin-bottom: 8px;
-      font-size: 16px;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+      color: #ef4444;
     }
 
     .error-message a {
@@ -1192,7 +1295,7 @@ function generateEnhancedCSS(): string {
     }
 
     .error-message a:hover {
-      color: #2563eb;
+      color: #60a5fa;
     }
   `;
 }

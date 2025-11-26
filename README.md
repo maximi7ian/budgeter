@@ -73,9 +73,34 @@ OPENAI_MODEL=gpt-3.5-turbo
 
 ### 4. Email/SMTP Configuration (Optional - for Automated Alerts)
 
-Configure SMTP to receive automated budget emails:
+Configure email sending to receive automated budget emails. Choose one option:
 
-#### Gmail Example:
+#### Option 1: Gmail OAuth2 (Recommended - Better Security & Deliverability)
+
+Gmail OAuth2 is more secure than app passwords and ensures emails don't go to spam:
+
+1. Follow the detailed setup guide: **[scripts/setup-gmail-oauth.md](scripts/setup-gmail-oauth.md)**
+2. Add OAuth2 credentials to `.env`:
+
+```env
+GMAIL_USER=your@gmail.com
+GMAIL_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GMAIL_CLIENT_SECRET=your-client-secret
+GMAIL_REFRESH_TOKEN=1//your-refresh-token
+ALERT_EMAIL_TO=recipient@email.com
+```
+
+**Benefits:**
+- ✅ More secure (no passwords stored)
+- ✅ Better deliverability (emails sent from verified Gmail account)
+- ✅ Won't go to spam
+- ✅ Automatic token refresh
+
+#### Option 2: Basic SMTP (Fallback)
+
+If you prefer traditional SMTP or use a non-Gmail provider:
+
+**Gmail with App Password:**
 1. Enable 2-factor authentication on your Google account
 2. Generate an [App Password](https://support.google.com/accounts/answer/185833)
 3. Add to `.env`:
@@ -84,13 +109,15 @@ Configure SMTP to receive automated budget emails:
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your@gmail.com
-SMTP_PASS=your-app-password
+SMTP_PASS=your-16-char-app-password
+MAIL_FROM=your@gmail.com
 ALERT_EMAIL_TO=recipient@email.com
 ```
 
-#### Other Providers:
+**Other Providers:**
 - **Outlook/Office365**: `smtp-mail.outlook.com`, port 587
 - **Yahoo**: `smtp.mail.yahoo.com`, port 587
+- **SendGrid**: `smtp.sendgrid.net`, port 587
 - **Custom SMTP**: Use your provider's settings
 
 ### 5. Google Sheets (Optional - for Excluded Expenses)

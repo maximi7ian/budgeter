@@ -1,19 +1,31 @@
 /**
- * Email sending functionality using Nodemailer
+ * Email sending functionality using Nodemailer with Gmail OAuth2
  */
 
 import nodemailer from "nodemailer";
+import type Mail from "nodemailer/lib/mailer";
 
 /**
- * Check if email is configured
+ * Check if email is configured (supports both OAuth2 and basic auth)
  */
 export function isEmailConfigured(): boolean {
-  return !!(
+  // Option 1: Gmail OAuth2 (recommended)
+  const hasOAuth = !!(
+    process.env.GMAIL_USER &&
+    process.env.GMAIL_CLIENT_ID &&
+    process.env.GMAIL_CLIENT_SECRET &&
+    process.env.GMAIL_REFRESH_TOKEN
+  );
+
+  // Option 2: Basic SMTP (fallback for non-Gmail or legacy setup)
+  const hasBasicAuth = !!(
     process.env.SMTP_HOST &&
     process.env.SMTP_PORT &&
     process.env.SMTP_USER &&
     process.env.SMTP_PASS
   );
+
+  return hasOAuth || hasBasicAuth;
 }
 
 /**
@@ -53,11 +65,11 @@ export function getEmailRecipientsArray(): string[] {
  * Validate email configuration before sending
  */
 export function validateEmailSetup(): { valid: boolean; error?: string } {
-  // Check SMTP configuration
+  // Check email configuration
   if (!isEmailConfigured()) {
     return {
       valid: false,
-      error: "SMTP not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS in .env",
+      error: "Email not configured. Set either Gmail OAuth2 (GMAIL_USER, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN) or basic SMTP (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS) in .env",
     };
   }
 
@@ -74,15 +86,41 @@ export function validateEmailSetup(): { valid: boolean; error?: string } {
 }
 
 /**
- * Create nodemailer transporter
+ * Create nodemailer transporter (supports Gmail OAuth2 and basic SMTP)
  */
-function createTransporter() {
+function createTransporter(): Mail {
   if (!isEmailConfigured()) {
     throw new Error(
-      "Email not configured. Please set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS in .env"
+      "Email not configured. Set either Gmail OAuth2 or basic SMTP credentials in .env"
     );
   }
 
+  // Option 1: Gmail OAuth2 (recommended for Gmail accounts)
+  const hasOAuth = !!(
+    process.env.GMAIL_USER &&
+    process.env.GMAIL_CLIENT_ID &&
+    process.env.GMAIL_CLIENT_SECRET &&
+    process.env.GMAIL_REFRESH_TOKEN
+  );
+
+  if (hasOAuth) {
+    console.log("   Using Gmail OAuth2 authentication");
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        type: 'OAuth2',
+        user: process.env.GMAIL_USER,
+        clientId: process.env.GMAIL_CLIENT_ID,
+        clientSecret: process.env.GMAIL_CLIENT_SECRET,
+        refreshToken: process.env.GMAIL_REFRESH_TOKEN,
+        // accessToken is optional - will be generated from refresh token if not provided
+        ...(process.env.GMAIL_ACCESS_TOKEN && { accessToken: process.env.GMAIL_ACCESS_TOKEN }),
+      },
+    });
+  }
+
+  // Option 2: Basic SMTP (fallback)
+  console.log("   Using basic SMTP authentication");
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT || "587"),
@@ -133,8 +171,11 @@ export async function sendBudgetEmail(
   console.log(`   ✓ Transporter created`);
   console.log(`   Step 4: Preparing email message...`);
 
+  // Determine sender email (use Gmail user if OAuth is configured, otherwise MAIL_FROM)
+  const fromEmail = process.env.GMAIL_USER || process.env.MAIL_FROM || process.env.SMTP_USER;
+
   const mailOptions = {
-    from: `"Budgeter" <${process.env.MAIL_FROM}>`,
+    from: `"Budgeter" <${fromEmail}>`,
     to,
     subject,
     html: htmlContent,

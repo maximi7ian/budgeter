@@ -1066,8 +1066,14 @@ export function renderLoginPage(error?: string): string {
  * Render settings page
  */
 export function renderSettingsPage(success?: string, error?: string): string {
+  const { isEmailConfigured } = require('./email');
   const aiConfigured = !!process.env.OPENAI_API_KEY;
-  const emailConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS);
+  const emailConfigured = isEmailConfigured();
+
+  // Determine which email method is configured
+  const gmailOAuth = !!(process.env.GMAIL_USER && process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN);
+  const basicSMTP = !!(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS);
+  const emailMethod = gmailOAuth ? 'Gmail OAuth2' : basicSMTP ? 'Basic SMTP' : null;
 
   // Get cron schedules from env
   const weeklySchedule = process.env.WEEKLY_CRON_SCHEDULE;
@@ -1117,11 +1123,11 @@ export function renderSettingsPage(success?: string, error?: string): string {
                 ${!aiConfigured ? '<p class="text-muted" style="margin-top: 0.5rem; font-size: 0.9em;">Set OPENAI_API_KEY in .env to enable AI-powered budget summaries</p>' : ''}
               </div>
               <div>
-                <strong>Email (SMTP):</strong>
+                <strong>Email:</strong>
                 <span class="badge ${emailConfigured ? "success" : "danger"}">
-                  ${emailConfigured ? "✓ Configured" : "Not Configured"}
+                  ${emailConfigured ? `✓ ${emailMethod}` : "Not Configured"}
                 </span>
-                ${!emailConfigured ? '<p class="text-muted" style="margin-top: 0.5rem; font-size: 0.9em;">Set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS in .env to enable email alerts</p>' : ''}
+                ${!emailConfigured ? '<p class="text-muted" style="margin-top: 0.5rem; font-size: 0.9em;">Set Gmail OAuth2 (GMAIL_USER, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN) or Basic SMTP (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS) in .env<br>📘 <a href="https://github.com/maximi7ian/budgeter/blob/main/scripts/setup-gmail-oauth.md" target="_blank" style="color: #3b82f6;">Gmail OAuth2 Setup Guide</a></p>' : `<p class="text-muted" style="margin-top: 0.5rem; font-size: 0.9em;">Using ${emailMethod}${gmailOAuth ? ' (recommended)' : ''}</p>`}
               </div>
             </div>
           </div>

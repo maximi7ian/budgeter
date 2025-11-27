@@ -177,7 +177,6 @@ export function generateBaseCSS(): string {
       padding: ${SPACING.lg};
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
-      overflow: hidden;
     }
 
     /* Gradient border effect on glass cards */
@@ -227,6 +226,7 @@ export function generateBaseCSS(): string {
       transform: translateX(-100%);
       transition: transform 0.6s ease;
       pointer-events: none;
+      overflow: hidden;
     }
 
     .glass-card:hover::after {

@@ -5,8 +5,8 @@
 
 import { AccountSummary, TransactionOutput } from "./types";
 import { ConnectionInfo } from "./data";
-import { generateBaseCSS, renderHeader, renderFooter, COLORS, SPACING, BORDER_RADIUS, FONTS } from "./ui/design-system";
-import { renderCustomReportModal } from "./ui_modal";
+import { generateBaseCSS, renderHeader, renderFooter, renderFavicon, COLORS, SPACING, BORDER_RADIUS, FONTS } from "./ui/design-system";
+import { renderCustomReportModal, renderCustomEmailModal } from "./ui_modal";
 import { isAccountExcluded } from "./config";
 
 // Import and re-export enhanced transactions page
@@ -201,6 +201,7 @@ export function renderHomePage(
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Budgeter - Home</title>
+      ${renderFavicon()}
       <style>${generateBaseCSS()}</style>
     </head>
     <body>
@@ -268,12 +269,12 @@ export function renderHomePage(
             <div class="glass-card">
               <h3 style="margin-bottom: ${SPACING.md};">Quick Actions</h3>
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: ${SPACING.md};">
-                <a href="/transactions?window=weekly" class="btn btn-secondary" style="justify-content: flex-start;">
+                <button onclick="navigateToWeeklyReport()" class="btn btn-secondary" style="justify-content: flex-start;">
                   📅 View Weekly
-                </a>
-                <a href="/transactions?window=monthly" class="btn btn-secondary" style="justify-content: flex-start;">
+                </button>
+                <button onclick="navigateToMonthlyReport()" class="btn btn-secondary" style="justify-content: flex-start;">
                   📊 View Monthly
-                </a>
+                </button>
                 <button onclick="openCustomReportModal()" class="btn btn-secondary" style="justify-content: flex-start;">
                   📋 Custom Report
                 </button>
@@ -281,6 +282,25 @@ export function renderHomePage(
                   ⚙️ Settings
                 </a>
               </div>
+
+              <script>
+                function navigateToWeeklyReport() {
+                  const today = new Date();
+                  const weekAgo = new Date(today);
+                  weekAgo.setDate(today.getDate() - 7);
+                  const start = weekAgo.toISOString().split('T')[0];
+                  const end = today.toISOString().split('T')[0];
+                  window.location.href = '/transactions?start=' + start + '&end=' + end + '&report_name=Weekly';
+                }
+
+                function navigateToMonthlyReport() {
+                  const today = new Date();
+                  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                  const start = firstOfMonth.toISOString().split('T')[0];
+                  const end = today.toISOString().split('T')[0];
+                  window.location.href = '/transactions?start=' + start + '&end=' + end + '&report_name=Monthly';
+                }
+              </script>
             </div>
           `}
         </main>
@@ -313,6 +333,7 @@ export function renderErrorPage(message: string, details?: string): string {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Error - Budgeter</title>
+      ${renderFavicon()}
       <style>${generateBaseCSS()}</style>
     </head>
     <body>
@@ -351,6 +372,7 @@ export function renderLoginPage(error?: string): string {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Login - Budgeter</title>
+      ${renderFavicon()}
       <style>
         ${generateBaseCSS()}
         .login-wrapper {
@@ -419,6 +441,7 @@ export function renderSettingsPage(success?: string, error?: string): string {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Settings - Budgeter</title>
+      ${renderFavicon()}
       <style>${generateBaseCSS()}</style>
     </head>
     <body>
@@ -495,27 +518,37 @@ export function renderSettingsPage(success?: string, error?: string): string {
 
           <div class="glass-card">
             <h2 style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: ${SPACING.sm}; margin-bottom: ${SPACING.lg};">
-              🧪 Test Actions
+              📧 Send Email Reports
             </h2>
-            
+
             <p style="color: ${COLORS.text.muted}; margin-bottom: ${SPACING.md};">
-              Manually trigger reports to test your configuration.
+              Manually trigger budget reports to test your email configuration.
             </p>
 
             <div style="display: flex; gap: ${SPACING.md}; flex-wrap: wrap;">
               <form method="POST" action="/send-alert/weekly">
                 <button type="submit" class="btn btn-secondary" ${!emailConfigured ? 'disabled' : ''}>
-                  📅 Send Weekly Report
+                  📅 Weekly Report
                 </button>
               </form>
               <form method="POST" action="/send-alert/monthly">
                 <button type="submit" class="btn btn-secondary" ${!emailConfigured ? 'disabled' : ''}>
-                  📊 Send Monthly Report
+                  📊 Monthly Report
                 </button>
               </form>
+              <button type="button" onclick="openCustomEmailModal()" class="btn btn-secondary" ${!emailConfigured ? 'disabled' : ''}>
+                📋 Custom Report
+              </button>
             </div>
+
+            <p style="color: ${COLORS.text.muted}; font-size: 0.85rem; margin-top: ${SPACING.md};">
+              💡 <strong>Tip:</strong> Custom report lets you choose specific dates and budget.
+            </p>
           </div>
         </main>
+
+        ${renderCustomReportModal()}
+        ${renderCustomEmailModal()}
 
         ${renderFooter()}
       </div>

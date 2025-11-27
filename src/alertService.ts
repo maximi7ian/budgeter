@@ -8,6 +8,7 @@ import { calculateDateWindow, listAllTransactionsFromAllTokens, getDummyData, ca
 import { sendBudgetEmail } from "./email";
 import { getWeeklyAllowance, getMonthlyAllowance, getLargeTransactionThreshold } from "./config";
 import { fetchExcludedExpenses, isSheetsConfigured } from "./sheets";
+import { calculateBudgetForPeriod } from "./budgetCalculator";
 
 // Email template system
 import { renderBudgetEmail } from "./email/budgetEmailTemplate";
@@ -38,14 +39,16 @@ const TOKEN_URL = process.env.TL_TOKEN_URL || "https://auth.truelayer.com/connec
 const API_BASE = process.env.TL_API_BASE || "https://api.truelayer.com";
 
 /**
- * Send budget alert for a specific period
+ * Send budget alert for a specific period or custom date range
  */
 export async function sendBudgetAlertForPeriod(
-  period: "weekly" | "monthly",
-  recipient?: string
+  period: "weekly" | "monthly" | "custom",
+  recipient?: string,
+  customDates?: { from: string; to: string; budget?: number }
 ): Promise<void> {
+  const reportType = period === "custom" ? "CUSTOM" : period.toUpperCase();
   console.log(`\n${"=".repeat(60)}`);
-  console.log(`📊 BUDGET ALERT: ${period.toUpperCase()}`);
+  console.log(`📊 BUDGET ALERT: ${reportType}`);
   console.log("=".repeat(60));
 
   // Step 1: Fetch transaction data
@@ -55,11 +58,17 @@ export async function sendBudgetAlertForPeriod(
   console.log("\n🔄 Step 1: Fetching transaction data...");
   if (MODE === "dummy") {
     console.log("   📦 Using dummy data (MODE=dummy)");
-    const dummyData = getDummyData(period);
+    const dummyData = getDummyData(period === "custom" ? "weekly" : period);
     transactions = dummyData.transactions;
-    dateWindow = dummyData.window;
+    dateWindow = period === "custom" && customDates
+      ? { mode: "custom" as WindowMode, from: customDates.from, to: customDates.to }
+      : dummyData.window;
   } else {
-    dateWindow = calculateDateWindow(period);
+    if (period === "custom" && customDates) {
+      dateWindow = { mode: "custom" as WindowMode, from: customDates.from, to: customDates.to };
+    } else {
+      dateWindow = calculateDateWindow(period as "weekly" | "monthly");
+    }
     console.log(`   📅 Date range: ${dateWindow.from} to ${dateWindow.to}`);
     const result = await listAllTransactionsFromAllTokens(
       CLIENT_ID,
@@ -119,7 +128,15 @@ export async function sendBudgetAlertForPeriod(
   // Step 4: Calculate statistics from REGULAR transactions only
   console.log("\n📊 Step 4: Computing statistics from regular transactions...");
 
-  const budget = period === "weekly" ? getWeeklyAllowance() : getMonthlyAllowance();
+  // Use calculateBudgetForPeriod for consistent budget calculation
+  const budgetInfo = calculateBudgetForPeriod(
+    dateWindow.from,
+    dateWindow.to,
+    period,
+    customDates?.budget
+  );
+  const budget = budgetInfo.amount;
+  console.log(`   💰 Budget calculation: ${budgetInfo.source} = £${budget.toFixed(2)} (${budgetInfo.days} days @ £${budgetInfo.dailyRate.toFixed(2)}/day)`);
 
   const totalSpend = Math.abs(
     regularTransactions.filter(t => t.amountGBP < 0).reduce((sum, t) => sum + t.amountGBP, 0)
@@ -242,9 +259,9 @@ export async function sendBudgetAlertForPeriod(
   console.log("   ✓ Email HTML generated");
 
   // Step 9: Send email with emoji in subject
-  const periodLabel = period === "weekly" ? "Weekly" : "Monthly";
-  const emoji = period === "weekly" ? "📅" : "📊";
-  const subject = `${emoji} ${periodLabel} Budget Summary`;
+  const periodLabel = period === "weekly" ? "Weekly" : period === "monthly" ? "Monthly" : "Custom";
+  const emoji = period === "weekly" ? "📅" : period === "monthly" ? "📊" : "📋";
+  const subject = `${emoji} ${periodLabel} Budget Report`;
 
   console.log(`\n📧 Step 9: Sending email...`);
   await sendBudgetEmail(subject, htmlContent, recipient);

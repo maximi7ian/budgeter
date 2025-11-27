@@ -26,15 +26,18 @@ export function formatDateRange(fromDate: string, toDate: string): string {
 /**
  * Generate period label (e.g., "Week of 3–9 March 2025")
  */
-export function generatePeriodLabel(fromDate: string, toDate: string, period: 'weekly' | 'monthly'): string {
+export function generatePeriodLabel(fromDate: string, toDate: string, period: 'weekly' | 'monthly' | 'custom'): string {
   const from = new Date(fromDate);
   const to = new Date(toDate);
 
   if (period === 'weekly') {
     const monthName = from.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
     return `Week of ${from.getDate()}–${to.getDate()} ${monthName}`;
-  } else {
+  } else if (period === 'monthly') {
     return from.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  } else {
+    // Custom period - show full date range
+    return `${from.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${to.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`;
   }
 }
 

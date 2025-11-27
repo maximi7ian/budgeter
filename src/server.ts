@@ -116,19 +116,42 @@ app.get("/settings", requireAuth, (req: Request, res: Response) => {
 
 /**
  * POST /send-alert/:period - Manually trigger alert email
+ * Also supports unified parameters:
+ * - /send-alert/custom?start=...&end=...&budget=...
  */
 app.post("/send-alert/:period", requireAuth, async (req: Request, res: Response) => {
   const { period } = req.params;
 
-  if (period !== "weekly" && period !== "monthly") {
-    return res.send(renderErrorPage("Invalid Period", 'Period must be "weekly" or "monthly"'));
+  if (period !== "weekly" && period !== "monthly" && period !== "custom") {
+    return res.send(renderErrorPage("Invalid Period", 'Period must be "weekly", "monthly", or "custom"'));
   }
 
   try {
-    await sendBudgetAlertForPeriod(period as "weekly" | "monthly");
+    if (period === "custom") {
+      // For custom reports, get dates from query parameters
+      // Use same parameter names as /transactions route for consistency
+      const start = req.query.start as string;
+      const end = req.query.end as string;
+      const budget = req.query.budget ? parseFloat(req.query.budget as string) : undefined;
+
+      if (!start || !end) {
+        return res.send(
+          renderSettingsPage(
+            undefined,
+            "Custom report requires start and end dates"
+          )
+        );
+      }
+
+      await sendBudgetAlertForPeriod("custom", undefined, { from: start, to: end, budget });
+    } else {
+      await sendBudgetAlertForPeriod(period as "weekly" | "monthly");
+    }
+
+    const periodLabel = period === "weekly" ? "Weekly" : period === "monthly" ? "Monthly" : "Custom";
     res.send(
       renderSettingsPage(
-        `${period === "weekly" ? "Weekly" : "Monthly"} budget alert sent successfully!`
+        `${periodLabel} budget report sent successfully!`
       )
     );
   } catch (error: any) {
@@ -255,124 +278,24 @@ app.get("/callback", requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /transactions?window=weekly|monthly
- * Fetch transactions for the specified window
+ * GET /transactions - Unified transaction fetching route
+ * Requires:
+ * - ?start=YYYY-MM-DD&end=YYYY-MM-DD (date range)
+ * Optional:
+ * - &budget=123.45 (custom budget)
+ * - &report_name=anything (report label, defaults to "Custom")
  */
 app.get("/transactions", requireAuth, async (req: Request, res: Response) => {
-  try {
-    const window = (req.query.window as string) || "weekly";
-
-    if (window !== "weekly" && window !== "monthly") {
-      return res.send(
-        renderErrorPage("Invalid Window", 'Window must be "weekly" or "monthly"')
-      );
-    }
-
-    const validWindow = window as "weekly" | "monthly";
-
-    console.log(`\n${"=".repeat(60)}`);
-    console.log(`🚀 Fetching ${validWindow} transactions`);
-    console.log("=".repeat(60));
-
-    let output;
-
-    if (MODE === "dummy") {
-      console.log("📦 Using dummy data (MODE=dummy)");
-      output = getDummyData(validWindow);
-    } else {
-      // Check if any tokens exist
-      const tokenFiles = await listTokenFiles();
-      if (tokenFiles.length === 0) {
-        return res.send(
-          renderErrorPage(
-            "Not Authenticated",
-            "Please connect your banks first by clicking 'Connect Banks' on the home page."
-          )
-        );
-      }
-
-      // Get date window
-      const dateWindow = calculateDateWindow(validWindow);
-
-      // Fetch from all tokens (cap "to" date to avoid future dates)
-      const { items, transactions } = await listAllTransactionsFromAllTokens(
-        CLIENT_ID,
-        CLIENT_SECRET,
-        TOKEN_URL,
-        dateWindow.from,
-        capDateForAPI(dateWindow.to), // Cap to today to avoid API errors
-        API_BASE
-      );
-
-      // Convert items to account summaries
-      const accounts = items.map((item) => ({
-        kind: item.kind,
-        id: item.kind === "account" ? item.account_id : item.card_id,
-        provider: item.provider,
-        type: item.kind === "account" ? item.account_type : item.card_type,
-        display_name: item.display_name,
-        currency: item.currency,
-      }));
-
-      // Fetch excluded expenses with error handling
-      const { fetchExcludedExpenses, isSheetsConfigured } = await import("./sheets");
-      let excludedExpenses: any[] = [];
-      let sheetsError: string | undefined;
-
-      if (isSheetsConfigured()) {
-        try {
-          excludedExpenses = await fetchExcludedExpenses();
-        } catch (error: any) {
-          console.warn("⚠️  Failed to fetch excluded expenses:", error.message);
-          sheetsError = error.message;
-          // Continue without excluded expenses
-        }
-      }
-
-      // Calculate budget for this period
-      const budget = calculateBudgetForPeriod(dateWindow.from, dateWindow.to, validWindow);
-
-      output = {
-        window: {
-          mode: validWindow,
-          from: dateWindow.from,
-          to: dateWindow.to,
-        },
-        budget,
-        accounts,
-        transactions,
-        excludedExpenses,
-        reimbursements: excludedExpenses, // Backward compatibility
-        sheetsError,
-      };
-    }
-
-    // Log to console for easy copy/paste
-    // console.log("\n" + "=".repeat(60));
-    // console.log("📋 JSON OUTPUT (copy to ChatGPT)");
-    // console.log("=".repeat(60));
-    // console.log(JSON.stringify(output, null, 2));
-    // console.log("=".repeat(60) + "\n");
-
-    res.send(renderEnhancedTransactionsPage(output));
-  } catch (error: any) {
-    console.error("❌ Error fetching transactions:", error);
-    res.send(renderErrorPage("Transaction Fetch Failed", error.message));
-  }
-});
-
-/**
- * GET /transactions/custom - Custom date range transactions
- */
-app.get("/transactions/custom", requireAuth, async (req: Request, res: Response) => {
   try {
     const start = req.query.start as string;
     const end = req.query.end as string;
     const customBudget = req.query.budget ? parseFloat(req.query.budget as string) : undefined;
+    const reportName = req.query.report_name as string;
 
+    // Require start and end dates
     if (!start || !end) {
       return res.send(
-        renderErrorPage("Invalid Parameters", "Start and end dates are required")
+        renderErrorPage("Missing Parameters", "Both start and end dates are required")
       );
     }
 
@@ -391,8 +314,24 @@ app.get("/transactions/custom", requireAuth, async (req: Request, res: Response)
       );
     }
 
+    const dateFrom = start;
+    const dateTo = end;
+
+    // Determine mode based on report name
+    let mode: "weekly" | "monthly" | "custom";
+    if (reportName?.toLowerCase() === "weekly") {
+      mode = "weekly";
+    } else if (reportName?.toLowerCase() === "monthly") {
+      mode = "monthly";
+    } else {
+      mode = "custom";
+    }
+
     console.log(`\n${"=".repeat(60)}`);
-    console.log(`🚀 Fetching custom transactions: ${start} to ${end}`);
+    console.log(`🚀 Fetching transactions: ${start} to ${end}`);
+    if (reportName) {
+      console.log(`📋 Report name: ${reportName}`);
+    }
     if (customBudget) {
       console.log(`💰 Custom budget: £${customBudget.toFixed(2)}`);
     } else {
@@ -404,14 +343,19 @@ app.get("/transactions/custom", requireAuth, async (req: Request, res: Response)
 
     if (MODE === "dummy") {
       console.log("📦 Using dummy data (MODE=dummy)");
-      output = getDummyData("weekly");
-      // Update window and budget for custom dates
-      const budget = calculateBudgetForPeriod(start, end, "custom", customBudget);
+      output = getDummyData(mode === "custom" ? "weekly" : mode);
+
+      // Calculate budget based on mode
+      const budget = mode === "custom"
+        ? calculateBudgetForPeriod(dateFrom, dateTo, "custom", customBudget)
+        : calculateBudgetForPeriod(dateFrom, dateTo, mode);
+
       output.window = {
-        mode: "custom" as const,
-        from: start,
-        to: end,
+        mode,
+        from: dateFrom,
+        to: dateTo,
         customBudget,
+        reportName,
       };
       output.budget = budget;
     } else {
@@ -426,13 +370,13 @@ app.get("/transactions/custom", requireAuth, async (req: Request, res: Response)
         );
       }
 
-      // Fetch from all tokens with custom date range (cap "to" date to avoid future dates)
+      // Fetch from all tokens (cap "to" date to avoid future dates)
       const { items, transactions } = await listAllTransactionsFromAllTokens(
         CLIENT_ID,
         CLIENT_SECRET,
         TOKEN_URL,
-        start,
-        capDateForAPI(end), // Cap to today to avoid API errors
+        dateFrom,
+        capDateForAPI(dateTo), // Cap to today to avoid API errors
         API_BASE
       );
 
@@ -461,15 +405,18 @@ app.get("/transactions/custom", requireAuth, async (req: Request, res: Response)
         }
       }
 
-      // Calculate budget for custom period
-      const budget = calculateBudgetForPeriod(start, end, "custom", customBudget);
+      // Calculate budget
+      const budget = mode === "custom"
+        ? calculateBudgetForPeriod(dateFrom, dateTo, "custom", customBudget)
+        : calculateBudgetForPeriod(dateFrom, dateTo, mode);
 
       output = {
         window: {
-          mode: "custom" as const,
-          from: start,
-          to: end,
+          mode,
+          from: dateFrom,
+          to: dateTo,
           customBudget,
+          reportName,
         },
         budget,
         accounts,
@@ -482,7 +429,7 @@ app.get("/transactions/custom", requireAuth, async (req: Request, res: Response)
 
     res.send(renderEnhancedTransactionsPage(output));
   } catch (error: any) {
-    console.error("❌ Error fetching custom transactions:", error);
+    console.error("❌ Error fetching transactions:", error);
     res.send(renderErrorPage("Transaction Fetch Failed", error.message));
   }
 });
@@ -517,14 +464,25 @@ app.post("/api/generate-insights", requireAuth, async (req: Request, res: Respon
   try {
     const { window } = req.body;
 
-    if (!window || (window !== "weekly" && window !== "monthly")) {
+    if (!window || (window !== "weekly" && window !== "monthly" && window !== "custom")) {
       return res.status(400).json({
         success: false,
-        error: 'Window must be "weekly" or "monthly"',
+        error: 'Window must be "weekly", "monthly", or "custom"',
       });
     }
 
-    const validWindow = window as "weekly" | "monthly";
+    const validWindow = window as "weekly" | "monthly" | "custom";
+
+    // For custom mode, we need date parameters
+    if (validWindow === "custom") {
+      const { start, end } = req.body;
+      if (!start || !end) {
+        return res.status(400).json({
+          success: false,
+          error: 'Custom mode requires "start" and "end" date parameters',
+        });
+      }
+    }
 
     // Check if OpenAI is configured
     if (!process.env.OPENAI_API_KEY) {
@@ -541,9 +499,17 @@ app.post("/api/generate-insights", requireAuth, async (req: Request, res: Respon
     let transactions, dateWindow;
 
     if (MODE === "dummy") {
-      const output = getDummyData(validWindow);
+      const dummyMode = validWindow === "custom" ? "weekly" : validWindow;
+      const output = getDummyData(dummyMode as "weekly" | "monthly");
       transactions = output.transactions;
-      dateWindow = output.window;
+
+      // Override window for custom mode
+      if (validWindow === "custom") {
+        const { start, end } = req.body;
+        dateWindow = { from: start, to: end };
+      } else {
+        dateWindow = { from: output.window.from, to: output.window.to };
+      }
     } else {
       const tokenFiles = await listTokenFiles();
       if (tokenFiles.length === 0) {
@@ -553,7 +519,12 @@ app.post("/api/generate-insights", requireAuth, async (req: Request, res: Respon
         });
       }
 
-      dateWindow = calculateDateWindow(validWindow);
+      if (validWindow === "custom") {
+        const { start, end } = req.body;
+        dateWindow = { from: start, to: end };
+      } else {
+        dateWindow = calculateDateWindow(validWindow as "weekly" | "monthly");
+      }
       const result = await listAllTransactionsFromAllTokens(
         CLIENT_ID,
         CLIENT_SECRET,
@@ -578,9 +549,22 @@ app.post("/api/generate-insights", requireAuth, async (req: Request, res: Respon
     }
 
     // Separate large transactions from regular transactions
-    const { getLargeTransactionThreshold, getWeeklyAllowance, getMonthlyAllowance } = await import("./config");
+    const { getLargeTransactionThreshold } = await import("./config");
+    const { calculateBudgetForPeriod } = await import("./budgetCalculator");
     const largeTransactionThreshold = getLargeTransactionThreshold();
-    const budget = window === "weekly" ? getWeeklyAllowance() : getMonthlyAllowance();
+
+    // Get custom budget if provided for custom mode
+    const customBudget = validWindow === "custom" && req.body.budget
+      ? parseFloat(req.body.budget)
+      : undefined;
+
+    const budgetInfo = calculateBudgetForPeriod(
+      dateWindow.from,
+      dateWindow.to,
+      validWindow,
+      customBudget
+    );
+    const budget = budgetInfo.amount;
 
     const { extractLargeTransactions } = await import("./email/helpers");
     const largeTransactions = extractLargeTransactions(transactions, largeTransactionThreshold);
@@ -613,9 +597,10 @@ app.post("/api/generate-insights", requireAuth, async (req: Request, res: Respon
 
     // Generate AI response
     const { generateFinancialAdviceAndBreakdown } = await import("./email/financialAdvice");
+    const { generatePeriodLabel, formatDateRange } = await import("./email/helpers");
     const aiResponse = await generateFinancialAdviceAndBreakdown({
-      periodLabel: window === "weekly" ? "This Week" : "This Month",
-      dateRange: `${dateWindow.from} - ${dateWindow.to}`,
+      periodLabel: generatePeriodLabel(dateWindow.from, dateWindow.to, validWindow),
+      dateRange: formatDateRange(dateWindow.from, dateWindow.to),
       totalSpend,
       budget,
       overUnder: totalSpend - budget,
@@ -657,18 +642,28 @@ app.post("/api/preview-email", requireAuth, async (req: Request, res: Response) 
   try {
     const { window, aiResponse } = req.body;
 
-    if (!window || (window !== "weekly" && window !== "monthly")) {
+    if (!window || (window !== "weekly" && window !== "monthly" && window !== "custom")) {
       return res.status(400).json({
-        error: 'Window must be "weekly" or "monthly"',
+        error: 'Window must be "weekly", "monthly", or "custom"',
       });
     }
 
-    const validWindow = window as "weekly" | "monthly";
+    const validWindow = window as "weekly" | "monthly" | "custom";
 
     if (!aiResponse || !aiResponse.categories || !aiResponse.spendingBreakdown || !aiResponse.advice) {
       return res.status(400).json({
         error: "Missing required AI response data",
       });
+    }
+
+    // For custom mode, we need date parameters
+    if (validWindow === "custom") {
+      const { start, end } = req.body;
+      if (!start || !end) {
+        return res.status(400).json({
+          error: 'Custom mode requires "start" and "end" date parameters',
+        });
+      }
     }
 
     console.log(`\n📧 Generating email preview for ${validWindow} period...`);
@@ -677,9 +672,17 @@ app.post("/api/preview-email", requireAuth, async (req: Request, res: Response) 
     let transactions, dateWindow;
 
     if (MODE === "dummy") {
-      const output = getDummyData(validWindow);
+      const dummyMode = validWindow === "custom" ? "weekly" : validWindow;
+      const output = getDummyData(dummyMode as "weekly" | "monthly");
       transactions = output.transactions;
-      dateWindow = output.window;
+
+      // Override window for custom mode
+      if (validWindow === "custom") {
+        const { start, end } = req.body;
+        dateWindow = { from: start, to: end };
+      } else {
+        dateWindow = { from: output.window.from, to: output.window.to };
+      }
     } else {
       const tokenFiles = await listTokenFiles();
       if (tokenFiles.length === 0) {
@@ -688,7 +691,12 @@ app.post("/api/preview-email", requireAuth, async (req: Request, res: Response) 
         });
       }
 
-      dateWindow = calculateDateWindow(validWindow);
+      if (validWindow === "custom") {
+        const { start, end } = req.body;
+        dateWindow = { from: start, to: end };
+      } else {
+        dateWindow = calculateDateWindow(validWindow as "weekly" | "monthly");
+      }
       const result = await listAllTransactionsFromAllTokens(
         CLIENT_ID,
         CLIENT_SECRET,
@@ -714,9 +722,22 @@ app.post("/api/preview-email", requireAuth, async (req: Request, res: Response) 
     }
 
     // Separate large transactions
-    const { getLargeTransactionThreshold, getWeeklyAllowance, getMonthlyAllowance } = await import("./config");
+    const { getLargeTransactionThreshold } = await import("./config");
+    const { calculateBudgetForPeriod } = await import("./budgetCalculator");
     const largeTransactionThreshold = getLargeTransactionThreshold();
-    const budget = window === "weekly" ? getWeeklyAllowance() : getMonthlyAllowance();
+
+    // Get custom budget if provided for custom mode
+    const customBudgetParam = validWindow === "custom" && req.body.budget
+      ? parseFloat(req.body.budget)
+      : undefined;
+
+    const budgetInfo = calculateBudgetForPeriod(
+      dateWindow.from,
+      dateWindow.to,
+      validWindow,
+      customBudgetParam
+    );
+    const budget = budgetInfo.amount;
 
     const { extractLargeTransactions } = await import("./email/helpers");
     const largeTransactions = extractLargeTransactions(transactions, largeTransactionThreshold);

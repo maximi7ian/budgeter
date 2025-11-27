@@ -778,10 +778,10 @@ export function renderHeader(currentPage: string, userName?: string): string {
               </svg>
             </button>
             <div class="dropdown-menu">
-              <a href="/transactions?window=weekly" class="dropdown-item ${isWeekly ? 'active' : ''}">
+              <a href="#" onclick="navigateToWeeklyReport(); return false;" class="dropdown-item ${isWeekly ? 'active' : ''}">
                 📅 Weekly Report
               </a>
-              <a href="/transactions?window=monthly" class="dropdown-item ${isMonthly ? 'active' : ''}">
+              <a href="#" onclick="navigateToMonthlyReport(); return false;" class="dropdown-item ${isMonthly ? 'active' : ''}">
                 📊 Monthly Report
               </a>
               <div class="dropdown-divider"></div>
@@ -805,6 +805,26 @@ export function renderHeader(currentPage: string, userName?: string): string {
         </nav>
       </div>
     </header>
+
+    <script>
+      // Global navigation helpers for Weekly/Monthly reports
+      function navigateToWeeklyReport() {
+        const today = new Date();
+        const weekAgo = new Date(today);
+        weekAgo.setDate(today.getDate() - 7);
+        const start = weekAgo.toISOString().split('T')[0];
+        const end = today.toISOString().split('T')[0];
+        window.location.href = '/transactions?start=' + start + '&end=' + end + '&report_name=Weekly';
+      }
+
+      function navigateToMonthlyReport() {
+        const today = new Date();
+        const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const start = firstOfMonth.toISOString().split('T')[0];
+        const end = today.toISOString().split('T')[0];
+        window.location.href = '/transactions?start=' + start + '&end=' + end + '&report_name=Monthly';
+      }
+    </script>
   `;
 }
 
@@ -815,7 +835,7 @@ export function renderFooter(): string {
   return `
     <footer class="text-center" style="margin-top: ${SPACING['2xl']}; padding: ${SPACING.xl} 0; color: ${COLORS.text.muted}; border-top: 1px solid rgba(255,255,255,0.05);">
       <p style="font-size: 0.9rem;">
-        Powered by <a href="https://truelayer.com" target="_blank" style="color: ${COLORS.text.main};">TrueLayer</a> 
+        Powered by <a href="https://truelayer.com" target="_blank" style="color: ${COLORS.text.main};">TrueLayer</a>
         & <a href="https://sheets.google.com" target="_blank" style="color: ${COLORS.text.main};">Google Sheets</a>
       </p>
       <p style="font-size: 0.8rem; margin-top: ${SPACING.sm}; opacity: 0.6;">
@@ -823,4 +843,25 @@ export function renderFooter(): string {
       </p>
     </footer>
   `;
+}
+
+/**
+ * Generate favicon link tag
+ * SVG favicon with money/budget theme matching the app's color scheme
+ */
+export function renderFavicon(): string {
+  // SVG favicon: Money bag icon with gradient
+  const faviconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <defs>
+      <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <circle cx="50" cy="50" r="48" fill="url(#grad)"/>
+    <text x="50" y="70" font-size="60" text-anchor="middle" fill="white">💰</text>
+  </svg>`;
+
+  const encodedSVG = encodeURIComponent(faviconSVG);
+  return `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,${encodedSVG}">`;
 }

@@ -5,7 +5,8 @@
 import { TransactionOutput, Txn } from "./types";
 import { getWeeklyAllowance, getMonthlyAllowance, getLargeTransactionThreshold } from "./config";
 import { aggregateByCategory, aggregateByMerchant } from "./email/helpers";
-import { generateBaseCSS, renderHeader, renderFooter, COLORS, SPACING, BORDER_RADIUS, FONTS } from "./ui/design-system";
+import { generateBaseCSS, renderHeader, renderFooter, renderFavicon, COLORS, SPACING, BORDER_RADIUS, FONTS } from "./ui/design-system";
+import { renderCustomReportModal } from "./ui_modal";
 
 /**
  * Render enhanced transactions page with budget insights and visual breakdowns
@@ -102,14 +103,14 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
 
   // Generate page title based on mode
   const pageTitle = output.window.mode === 'custom'
-    ? `Custom Report (${output.window.from} to ${output.window.to})`
+    ? (output.window.reportName || `Custom Report (${output.window.from} to ${output.window.to})`)
     : output.window.mode === 'weekly'
       ? 'Weekly Transactions'
       : 'Monthly Transactions';
 
   // Generate heading for the page
   const pageHeading = output.window.mode === 'custom'
-    ? `📋 Custom Budget Report`
+    ? `📋 ${output.window.reportName || 'Custom Budget Report'}`
     : output.window.mode === 'weekly'
       ? '📅 Weekly Transactions'
       : '📊 Monthly Transactions';
@@ -127,6 +128,7 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>${pageTitle}</title>
+      ${renderFavicon()}
       <style>
         ${generateBaseCSS()}
         
@@ -314,7 +316,7 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
 
           <!-- Main Content Grid -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: ${SPACING.lg}; margin-bottom: ${SPACING.xl};">
-            ${aiConfigured && output.window.mode !== 'custom' ? `
+            ${aiConfigured ? `
             <!-- AI Insights Section -->
             <section class="glass-card" id="ai-insights-section">
               <h3 style="margin-bottom: ${SPACING.md}; display: flex; align-items: center; gap: ${SPACING.sm};">
@@ -389,12 +391,16 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
           ` : ''}
         </main>
 
+        ${renderCustomReportModal()}
+
         ${renderFooter()}
       </div>
 
       <!-- JavaScript for AI Insights -->
       <script>
         const periodWindow = '${output.window.mode}';
+        const periodStart = '${output.window.from}';
+        const periodEnd = '${output.window.to}';
         let aiResponseData = null;
         
         // Keyframes for spinner
@@ -419,10 +425,16 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
             error.style.display = 'none';
 
             try {
+              const requestBody = { window: periodWindow };
+              if (periodWindow === 'custom') {
+                requestBody.start = periodStart;
+                requestBody.end = periodEnd;
+              }
+
               const response = await fetch('/api/generate-insights', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ window: periodWindow })
+                body: JSON.stringify(requestBody)
               });
 
               const result = await response.json();
@@ -534,17 +546,24 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
             button.innerHTML = '<span class="button-icon">⏳</span> Generating...';
 
             try {
+              const requestBody = {
+                window: periodWindow,
+                aiResponse: {
+                  categories: aiResponseData.categories,
+                  spendingBreakdown: aiResponseData.spendingBreakdown,
+                  advice: aiResponseData.advice
+                }
+              };
+
+              if (periodWindow === 'custom') {
+                requestBody.start = periodStart;
+                requestBody.end = periodEnd;
+              }
+
               const response = await fetch('/api/preview-email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  window: periodWindow,
-                  aiResponse: {
-                    categories: aiResponseData.categories,
-                    spendingBreakdown: aiResponseData.spendingBreakdown,
-                    advice: aiResponseData.advice
-                  }
-                })
+                body: JSON.stringify(requestBody)
               });
 
               if (!response.ok) throw new Error('Failed to generate preview');

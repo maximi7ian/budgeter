@@ -141,6 +141,7 @@ export interface TransactionOutput {
     to: string;
     mode: WindowMode;
     customBudget?: number; // Optional custom budget for custom date ranges
+    reportName?: string; // Optional custom report name for custom date ranges
   };
   budget: {
     amount: number; // The budget amount for this period

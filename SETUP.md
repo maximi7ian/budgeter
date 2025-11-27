@@ -39,9 +39,9 @@ SESSION_SECRET=random-string-for-encryption
 
 **Important**: Use a strong password (8+ characters minimum).
 
-### 2. TrueLayer Integration (Required for Live Data)
+### 2. TrueLayer Integration (Optional - For Real Bank Data)
 
-Connect to UK bank accounts via TrueLayer:
+**By default, the app runs in dummy mode** with fake data for testing. To connect real UK bank accounts:
 
 1. Create an app at [TrueLayer Console](https://console.truelayer.com/)
 2. Enable the **Data** product
@@ -54,6 +54,8 @@ TL_CLIENT_ID=your-truelayer-client-id
 TL_CLIENT_SECRET=your-truelayer-client-secret
 TL_REDIRECT_URI=http://localhost:3000/callback
 ```
+
+**Note**: If `MODE` is not set or set to `dummy`, the app uses fake data and does not require TrueLayer credentials.
 
 ### 3. OpenAI API (Optional - AI Budget Summaries)
 
@@ -140,14 +142,23 @@ Customize how AI analyzes your spending:
 
 ## Environment Variables Reference
 
-### Required (Live Mode)
-- `MODE` - `live` or `dummy`
-- `TL_CLIENT_ID` - TrueLayer client ID
-- `TL_CLIENT_SECRET` - TrueLayer client secret
+### Required (for Authentication)
 - `ADMIN_EMAIL` - Login email
 - `ADMIN_PASSWORD` - Login password (8+ characters)
 
-### Optional
+### Optional - TrueLayer (Live Bank Data)
+- `MODE` - `live` or `dummy` (default: `dummy`)
+- `TL_CLIENT_ID` - TrueLayer client ID
+- `TL_CLIENT_SECRET` - TrueLayer client secret
+- `TL_REDIRECT_URI` - TrueLayer redirect URI (default: `http://localhost:3000/callback`)
+
+### Optional - Budget Configuration
+- `WEEKLY_ALLOWANCE` - Weekly spending budget (default: 100)
+- `MONTHLY_ALLOWANCE` - Monthly spending budget (default: 4x weekly allowance)
+- `LARGE_TRANSACTION_THRESHOLD` - Exclude purchases above this amount from regular budget (default: 100)
+- `TL_EXCLUDE_ACCOUNTS` - Comma-separated list of account/card IDs to exclude from budget calculations
+
+### Optional - AI & Email
 - `SESSION_SECRET` - Session encryption key (auto-generated if not set)
 - `OPENAI_API_KEY` - For AI budget summaries
 - `OPENAI_MODEL` - OpenAI model (default: `gpt-3.5-turbo`)
@@ -161,6 +172,8 @@ Customize how AI analyzes your spending:
 - `GMAIL_REFRESH_TOKEN` - Gmail OAuth2 refresh token
 - `MAIL_FROM` - Email sender address
 - `ALERT_EMAIL_TO` - Email recipient address
+
+### Optional - Google Sheets & Scheduling
 - `GOOGLE_SHEETS_SPREADSHEET_ID` - Google Sheets ID
 - `GOOGLE_SHEETS_RANGE` - Sheet range (e.g., `Sheet1!A:E`)
 - `GOOGLE_APPLICATION_CREDENTIALS` - Path to GCP service account JSON
@@ -180,14 +193,14 @@ Customize how AI analyzes your spending:
 
 3. Log in with your `ADMIN_EMAIL` and `ADMIN_PASSWORD`
 
-4. Click **"Connect Banks (TrueLayer)"** to authorize accounts
+4. **If using live mode**: Click **"Connect Banks (TrueLayer)"** to authorize accounts
 
-5. Visit **Settings** to confirm configuration:
-   - Alert email addresses
-   - Weekly/monthly alerts
-   - Weekly allowance budget
-   - Monthly allowance budget
-   - Large transaction threshold
+5. Visit **Settings** to check integration status:
+   - OpenAI (AI Insights) - for spending analysis
+   - Google Sheets - for excluded expenses
+   - Email Service - for automated reports
+
+**Note**: Budget settings (weekly allowance, large transaction threshold, etc.) are configured via environment variables in `.env`, not through the UI.
 
 ## Usage
 
@@ -199,7 +212,10 @@ Customize how AI analyzes your spending:
 
 ### Testing Email Alerts
 
-From the Settings page, click **"Send Weekly/Monthly Summary Now"** to test email delivery.
+From the Settings page, you can manually send budget reports:
+- **📅 Weekly Report** - Last 7 days
+- **📊 Monthly Report** - Previous month
+- **📋 Custom Report** - Opens a modal to select custom date range and budget
 
 ### Scheduled Alerts
 

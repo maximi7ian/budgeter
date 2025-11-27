@@ -9,10 +9,10 @@ export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
   // Color mapping for budget categories
   const overUnderColor =
     data.overUnderType === 'over' ? '#ef4444' :      // Red (significantly over)
-    data.overUnderType === 'just-over' ? '#f59e0b' : // Orange (slightly over, within 15%)
-    data.overUnderType === 'under' ? '#10b981' :     // Green (significantly under)
-    data.overUnderType === 'just-under' ? '#3b82f6' : // Blue (slightly under, within 15%)
-    '#6b7280';                                         // Gray (on-target)
+      data.overUnderType === 'just-over' ? '#f59e0b' : // Orange (slightly over, within 15%)
+        data.overUnderType === 'under' ? '#10b981' :     // Green (significantly under)
+          data.overUnderType === 'just-under' ? '#3b82f6' : // Blue (slightly under, within 15%)
+            '#6b7280';                                         // Gray (on-target)
 
   return `
 <!DOCTYPE html>
@@ -78,14 +78,20 @@ export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
 
           <!-- Header with gradient -->
           <tr>
-            <td style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 48px 32px; text-align: center;">
-              <div style="font-size: 64px; line-height: 1; margin-bottom: 16px;">💰</div>
-              <h1 style="margin: 0 0 12px 0; color: #ffffff; font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">
+            <td style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%); padding: 56px 32px 48px; text-align: center; position: relative;">
+              <!-- Decorative elements -->
+              <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #10b981, #3b82f6, #8b5cf6, #ec4899); opacity: 0.8;"></div>
+              
+              <div style="font-size: 72px; line-height: 1; margin-bottom: 20px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));">💰</div>
+              <h1 style="margin: 0 0 16px 0; color: #ffffff; font-size: 36px; font-weight: 900; letter-spacing: -0.5px; text-shadow: 0 2px 8px rgba(0,0,0,0.2);">
                 ${data.periodLabel}
               </h1>
-              <p style="margin: 0; color: rgba(255,255,255,0.95); font-size: 16px; font-weight: 500;">
+              <p style="margin: 0; color: rgba(255,255,255,0.95); font-size: 17px; font-weight: 600; letter-spacing: 0.3px;">
                 ${data.dateRange}
               </p>
+              
+              <!-- Decorative bottom accent -->
+              <div style="margin-top: 24px; height: 2px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);"></div>
             </td>
           </tr>
 
@@ -98,11 +104,12 @@ export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
                 <tr>
                   <!-- Spent card -->
                   <td class="stat-card" width="33.33%" style="padding: 0 8px 0 0; vertical-align: top;">
-                    <table width="100%" cellpadding="20" cellspacing="0" border="0" class="bg-card" style="border-radius: 12px;">
+                    <table width="100%" cellpadding="24" cellspacing="0" border="0" class="bg-card" style="border-radius: 14px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.08));">
                       <tr>
                         <td style="text-align: center;">
-                          <div class="text-secondary" style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">TOTAL SPEND</div>
-                          <div class="stat-value text-primary" style="font-size: 36px; font-weight: 800; letter-spacing: -1px;">${data.totalSpend}</div>
+                          <div style="font-size: 28px; margin-bottom: 12px; opacity: 0.9;">💸</div>
+                          <div class="text-secondary" style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">TOTAL SPEND</div>
+                          <div class="stat-value text-primary" style="font-size: 38px; font-weight: 900; letter-spacing: -1.5px;">${data.totalSpend}</div>
                         </td>
                       </tr>
                     </table>
@@ -110,11 +117,12 @@ export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
 
                   <!-- Budget card -->
                   <td class="stat-card" width="33.33%" style="padding: 0 4px; vertical-align: top;">
-                    <table width="100%" cellpadding="20" cellspacing="0" border="0" class="bg-card" style="border-radius: 12px;">
+                    <table width="100%" cellpadding="24" cellspacing="0" border="0" class="bg-card" style="border-radius: 14px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(52, 211, 153, 0.08));">
                       <tr>
                         <td style="text-align: center;">
-                          <div class="text-secondary" style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">BUDGET</div>
-                          <div class="stat-value text-primary" style="font-size: 36px; font-weight: 800; letter-spacing: -1px;">${data.budget}</div>
+                          <div style="font-size: 28px; margin-bottom: 12px; opacity: 0.9;">🎯</div>
+                          <div class="text-secondary" style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">BUDGET</div>
+                          <div class="stat-value text-primary" style="font-size: 38px; font-weight: 900; letter-spacing: -1.5px;">${data.budget}</div>
                         </td>
                       </tr>
                     </table>
@@ -122,19 +130,24 @@ export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
 
                   <!-- Over/Under card -->
                   <td class="stat-card" width="33.33%" style="padding: 0 0 0 8px; vertical-align: top;">
-                    <table width="100%" cellpadding="20" cellspacing="0" border="0" class="bg-card" style="border: 2px solid ${overUnderColor}; border-radius: 12px;">
+                    <table width="100%" cellpadding="24" cellspacing="0" border="0" class="bg-card" style="border: 2px solid ${overUnderColor}; border-radius: 14px; background: ${overUnderColor}15; box-shadow: 0 4px 12px ${overUnderColor}30;">
                       <tr>
                         <td style="text-align: center;">
-                          <div style="font-size: 11px; color: ${overUnderColor}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
-                            ${
-                              data.overUnderType === 'over' ? 'OVER BUDGET' :
-                              data.overUnderType === 'just-over' ? 'SLIGHTLY OVER' :
-                              data.overUnderType === 'under' ? 'UNDER BUDGET' :
-                              data.overUnderType === 'just-under' ? 'SLIGHTLY UNDER' :
-                              'ON TARGET'
-                            }
+                          <div style="font-size: 28px; margin-bottom: 12px;">${data.overUnderType === 'over' ? '⚠️' :
+      data.overUnderType === 'just-over' ? '🔸' :
+        data.overUnderType === 'under' ? '✅' :
+          data.overUnderType === 'just-under' ? '🔷' :
+            '✅'
+    }</div>
+                          <div style="font-size: 11px; color: ${overUnderColor}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
+                            ${data.overUnderType === 'over' ? 'OVER BUDGET' :
+      data.overUnderType === 'just-over' ? 'SLIGHTLY OVER' :
+        data.overUnderType === 'under' ? 'UNDER BUDGET' :
+          data.overUnderType === 'just-under' ? 'SLIGHTLY UNDER' :
+            'ON TARGET'
+    }
                           </div>
-                          <div class="stat-value" style="font-size: 36px; color: ${overUnderColor}; font-weight: 800; letter-spacing: -1px;">${data.remainingBudget.replace('-', '')}</div>
+                          <div class="stat-value" style="font-size: 38px; color: ${overUnderColor}; font-weight: 900; letter-spacing: -1.5px;">${data.remainingBudget.replace('-', '')}</div>
                         </td>
                       </tr>
                     </table>
@@ -143,12 +156,12 @@ export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
               </table>
 
               <!-- Transaction summary bar -->
-              <table width="100%" cellpadding="14" cellspacing="0" border="0" class="bg-summary" style="margin-top: 16px; border-radius: 10px;">
+              <table width="100%" cellpadding="16" cellspacing="0" border="0" class="bg-summary" style="margin-top: 20px; border-radius: 12px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(16, 185, 129, 0.05));">
                 <tr>
-                  <td class="text-secondary" style="text-align: center; font-size: 14px; font-weight: 500;">
-                    ${data.transactionCount} transactions
-                    <span class="text-light" style="margin: 0 8px;">•</span>
-                    ${data.avgTransaction} average
+                  <td class="text-secondary" style="text-align: center; font-size: 15px; font-weight: 600;">
+                    <span style="color: #6366f1;">📊</span> ${data.transactionCount} transactions
+                    <span class="text-light" style="margin: 0 10px; opacity: 0.5;">•</span>
+                    <span style="color: #10b981;">💵</span> ${data.avgTransaction} average
                   </td>
                 </tr>
               </table>
@@ -160,13 +173,13 @@ export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
           <!-- Spending breakdown -->
           <tr>
             <td style="padding: 0 24px 24px;">
-              <table width="100%" cellpadding="24" cellspacing="0" border="0" class="bg-section" style="border-top: 3px solid #6366f1; border-radius: 12px;">
+              <table width="100%" cellpadding="28" cellspacing="0" border="0" class="bg-section" style="border-top: 4px solid #6366f1; border-radius: 14px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);">
                 <tr>
                   <td>
-                    <h2 class="text-primary" style="margin: 0 0 20px; font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">
-                      📊 Spending by Category
+                    <h2 class="text-primary" style="margin: 0 0 24px; font-size: 22px; font-weight: 800; letter-spacing: -0.4px; display: flex; align-items: center; gap: 10px;">
+                      <span style="font-size: 28px;">📊</span> Spending by Category
                     </h2>
-                    <div class="text-primary" style="font-size: 15px; line-height: 1.6;">
+                    <div class="text-primary" style="font-size: 15px; line-height: 1.7;">
                       ${data.spendingBreakdownHtml}
                     </div>
                   </td>
@@ -180,13 +193,13 @@ export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
           <!-- AI Insights -->
           <tr>
             <td style="padding: 0 24px 24px;">
-              <table width="100%" cellpadding="24" cellspacing="0" border="0" style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1)); border: 1px solid rgba(139,92,246,0.25); border-top: 3px solid #8b5cf6; border-radius: 12px;">
+              <table width="100%" cellpadding="28" cellspacing="0" border="0" style="background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(99,102,241,0.12)); border: 2px solid rgba(139,92,246,0.3); border-top: 4px solid #8b5cf6; border-radius: 14px; box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);">
                 <tr>
                   <td>
-                    <h2 class="text-primary" style="margin: 0 0 16px; font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">
-                      💡 AI Financial Insights
+                    <h2 class="text-primary" style="margin: 0 0 20px; font-size: 22px; font-weight: 800; letter-spacing: -0.4px; display: flex; align-items: center; gap: 10px;">
+                      <span style="font-size: 28px;">💡</span> AI Financial Insights
                     </h2>
-                    <div style="color: #7c3aed; font-size: 15px; line-height: 1.7; font-weight: 500;">
+                    <div style="color: #7c3aed; font-size: 15px; line-height: 1.8; font-weight: 500;">
                       ${data.advisorAdviceHtml}
                     </div>
                   </td>
@@ -200,13 +213,13 @@ export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
           <!-- Top Merchants -->
           <tr>
             <td style="padding: 0 24px 24px;">
-              <table width="100%" cellpadding="24" cellspacing="0" border="0" class="bg-section" style="border-top: 3px solid #10b981; border-radius: 12px;">
+              <table width="100%" cellpadding="28" cellspacing="0" border="0" class="bg-section" style="border-top: 4px solid #10b981; border-radius: 14px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);">
                 <tr>
                   <td>
-                    <h2 class="text-primary" style="margin: 0 0 20px; font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">
-                      🏪 Top Merchants
+                    <h2 class="text-primary" style="margin: 0 0 24px; font-size: 22px; font-weight: 800; letter-spacing: -0.4px; display: flex; align-items: center; gap: 10px;">
+                      <span style="font-size: 28px;">🏪</span> Top Merchants
                     </h2>
-                    <div class="text-primary" style="font-size: 15px; line-height: 1.6;">
+                    <div class="text-primary" style="font-size: 15px; line-height: 1.7;">
                       ${data.topMerchantsHtml}
                     </div>
                   </td>
@@ -220,13 +233,13 @@ export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
           <!-- Largest Purchases -->
           <tr>
             <td style="padding: 0 24px 24px;">
-              <table width="100%" cellpadding="24" cellspacing="0" border="0" class="bg-section" style="border-top: 3px solid #3b82f6; border-radius: 12px;">
+              <table width="100%" cellpadding="28" cellspacing="0" border="0" class="bg-section" style="border-top: 4px solid #3b82f6; border-radius: 14px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);">
                 <tr>
                   <td>
-                    <h2 class="text-primary" style="margin: 0 0 20px; font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">
-                      🛍️ Largest Purchases
+                    <h2 class="text-primary" style="margin: 0 0 24px; font-size: 22px; font-weight: 800; letter-spacing: -0.4px; display: flex; align-items: center; gap: 10px;">
+                      <span style="font-size: 28px;">🛍️</span> Largest Purchases
                     </h2>
-                    <div class="text-primary" style="font-size: 15px; line-height: 1.6;">
+                    <div class="text-primary" style="font-size: 15px; line-height: 1.7;">
                       ${data.biggestPurchasesHtml}
                     </div>
                   </td>
@@ -240,16 +253,16 @@ export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
           <!-- Large Transactions Excluded -->
           <tr>
             <td style="padding: 0 24px 24px;">
-              <table width="100%" cellpadding="24" cellspacing="0" border="0" style="background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); border-top: 3px solid #f59e0b; border-radius: 12px;">
+              <table width="100%" cellpadding="28" cellspacing="0" border="0" style="background: rgba(245,158,11,0.08); border: 2px solid rgba(245,158,11,0.25); border-top: 4px solid #f59e0b; border-radius: 14px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);">
                 <tr>
                   <td>
-                    <h2 style="margin: 0 0 12px; color: #d97706; font-size: 18px; font-weight: 700; letter-spacing: -0.3px;">
-                      ⚠️ Large Transactions (Excluded)
+                    <h2 style="margin: 0 0 16px; color: #d97706; font-size: 20px; font-weight: 800; letter-spacing: -0.4px; display: flex; align-items: center; gap: 10px;">
+                      <span style="font-size: 26px;">⚠️</span> Large Transactions (Excluded)
                     </h2>
-                    <p style="margin: 0 0 16px; color: #b45309; font-size: 13px; font-weight: 600;">
+                    <p style="margin: 0 0 20px; color: #b45309; font-size: 14px; font-weight: 600; line-height: 1.5;">
                       These transactions were excluded from your budget calculations:
                     </p>
-                    <div style="color: #92400e; font-size: 14px; line-height: 1.6;">
+                    <div style="color: #92400e; font-size: 14px; line-height: 1.7;">
                       ${data.largeTransactionsHtml}
                     </div>
                   </td>

@@ -14,10 +14,13 @@ export function renderBiggestPurchasesSection(purchases: Purchase[]): string {
     return '<p style="margin: 0; color: #9ca3af; font-size: 13px;">No large purchases this period.</p>';
   }
 
-  const items = purchases.map(p => `
-    <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.08);">
-      <div style="font-weight: 600; margin-bottom: 2px;">${escapeHtml(p.merchant)} <span style="font-weight: 700; color: #ef4444;">${p.amountFormatted}</span></div>
-      <div style="font-size: 12px; opacity: 0.7;">${escapeHtml(p.description)}</div>
+  const items = purchases.map((p, index) => `
+    <div style="margin-bottom: 12px; padding: 14px; background: rgba(59, 130, 246, 0.05); border-left: 3px solid #3b82f6; border-radius: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span style="font-weight: 700; font-size: 15px; color: #1f2937;">${index + 1}. ${escapeHtml(p.merchant)}</span>
+        <span style="font-weight: 800; color: #ef4444; font-size: 16px;">${p.amountFormatted}</span>
+      </div>
+      <div style="font-size: 13px; color: #6b7280; line-height: 1.4;">${escapeHtml(p.description)}</div>
     </div>
   `).join('');
 
@@ -32,10 +35,13 @@ export function renderTopMerchantsSection(merchants: MerchantTotal[]): string {
     return '<p style="margin: 0; color: #9ca3af; font-size: 13px;">No merchant data available.</p>';
   }
 
-  const items = merchants.map(m => `
-    <div style="margin-bottom: 6px;">
-      <span style="font-weight: 600;">${escapeHtml(m.name)}</span>
-      <span style="opacity: 0.65;"> · ${m.amountFormatted} · ${m.transactionCount} transaction${m.transactionCount !== 1 ? 's' : ''}</span>
+  const items = merchants.map((m, index) => `
+    <div style="margin-bottom: 10px; padding: 12px; background: rgba(16, 185, 129, 0.05); border-left: 3px solid #10b981; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <span style="font-weight: 700; font-size: 15px; color: #1f2937;">${index + 1}. ${escapeHtml(m.name)}</span>
+        <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">${m.transactionCount} transaction${m.transactionCount !== 1 ? 's' : ''}</div>
+      </div>
+      <span style="font-weight: 800; color: #10b981; font-size: 16px;">${m.amountFormatted}</span>
     </div>
   `).join('');
 
@@ -53,18 +59,19 @@ export function renderCategoryBreakdownSection(categories: CategoryTotal[]): str
   const rows = categories.map(cat => {
     // Color bars based on percentage
     const barColor = cat.percentageOfTotal > 30 ? '#ef4444' : cat.percentageOfTotal > 15 ? '#f59e0b' : '#6366f1';
+    const barBg = cat.percentageOfTotal > 30 ? 'rgba(239, 68, 68, 0.1)' : cat.percentageOfTotal > 15 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(99, 102, 241, 0.1)';
 
     return `
       <tr>
-        <td style="padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.06);">
-          <div style="margin-bottom: 6px;">
-            <span style="font-weight: 500;">${escapeHtml(cat.name)}</span>
-            <span style="float: right; font-weight: 600;">${cat.amountFormatted}</span>
+        <td style="padding: 16px 0; border-bottom: 1px solid rgba(0,0,0,0.05);">
+          <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 600; font-size: 15px; color: #1f2937;">${escapeHtml(cat.name)}</span>
+            <span style="font-weight: 800; font-size: 15px; color: ${barColor};">${cat.amountFormatted}</span>
           </div>
-          <div style="clear: both; background: rgba(0,0,0,0.05); height: 6px; border-radius: 3px; overflow: hidden;">
-            <div style="background: ${barColor}; height: 100%; width: ${Math.min(cat.percentageOfTotal, 100)}%; border-radius: 3px;"></div>
+          <div style="clear: both; background: ${barBg}; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 6px;">
+            <div style="background: ${barColor}; height: 100%; width: ${Math.min(cat.percentageOfTotal, 100)}%; border-radius: 4px; box-shadow: 0 0 8px ${barColor}40;"></div>
           </div>
-          <div style="margin-top: 4px; font-size: 12px; opacity: 0.65;">${cat.percentageOfTotal.toFixed(1)}% of total</div>
+          <div style="margin-top: 6px; font-size: 13px; color: #6b7280; font-weight: 600;">${cat.percentageOfTotal.toFixed(1)}% of total spending</div>
         </td>
       </tr>
     `;

@@ -29,7 +29,7 @@ export const COLORS = {
   dangerBg: 'rgba(239, 68, 68, 0.1)',
   info: '#3b82f6',
   infoBg: 'rgba(59, 130, 246, 0.1)',
-  
+
   // Neutrals (Dark Slate/Gray)
   gray: {
     50: '#f8fafc',
@@ -176,13 +176,61 @@ export function generateBaseCSS(): string {
       box-shadow: ${SHADOWS.base};
       padding: ${SPACING.lg};
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Gradient border effect on glass cards */
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: ${BORDER_RADIUS.xl};
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(16, 185, 129, 0.3));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
     }
 
     .glass-card:hover {
       background: ${COLORS.bg.cardHover};
       border-color: rgba(255, 255, 255, 0.1);
-      transform: translateY(-2px);
-      box-shadow: ${SHADOWS.md};
+      transform: translateY(-4px);
+      box-shadow: ${SHADOWS.lg}, 0 0 40px rgba(79, 70, 229, 0.15);
+    }
+
+    .glass-card:hover::before {
+      opacity: 1;
+    }
+
+    /* Shimmer effect for premium feel */
+    .glass-card::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.03) 50%,
+        transparent 70%
+      );
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+      pointer-events: none;
+    }
+
+    .glass-card:hover::after {
+      transform: translateX(100%);
     }
 
     /* Buttons */
@@ -200,6 +248,27 @@ export function generateBaseCSS(): string {
       border: none;
       text-decoration: none;
       font-family: ${FONTS.sans};
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Ripple effect for buttons */
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .btn:active::before {
+      width: 300px;
+      height: 300px;
     }
 
     .btn-primary {
@@ -209,8 +278,12 @@ export function generateBaseCSS(): string {
     }
 
     .btn-primary:hover {
-      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
-      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+      transform: translateY(-2px) scale(1.02);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0) scale(0.98);
     }
 
     .btn-secondary {
@@ -222,6 +295,11 @@ export function generateBaseCSS(): string {
     .btn-secondary:hover {
       background: rgba(255, 255, 255, 0.1);
       border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary:active {
+      transform: translateY(0);
     }
 
     .btn-danger {
@@ -233,6 +311,17 @@ export function generateBaseCSS(): string {
     .btn-danger:hover {
       background: rgba(239, 68, 68, 0.2);
       border-color: rgba(239, 68, 68, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-danger:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
     }
 
     .btn-icon {
@@ -248,6 +337,11 @@ export function generateBaseCSS(): string {
     .btn-icon:hover {
       background: rgba(255, 255, 255, 0.1);
       color: ${COLORS.text.main};
+      transform: scale(1.1);
+    }
+
+    .btn-icon:active {
+      transform: scale(0.95);
     }
 
     /* Forms */
@@ -316,8 +410,89 @@ export function generateBaseCSS(): string {
     .mb-4 { margin-bottom: ${SPACING.md}; }
 
     /* Animations */
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -1000px 0; }
+      100% { background-position: 1000px 0; }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
     .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    .animate-slide-in-left { animation: slideInLeft 0.5s ease-out forwards; }
+    .animate-slide-in-right { animation: slideInRight 0.5s ease-out forwards; }
+    .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    .animate-spin { animation: spin 1s linear infinite; }
+
+    /* Skeleton Loading States */
+    .skeleton {
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.03) 25%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.03) 75%
+      );
+      background-size: 1000px 100%;
+      animation: shimmer 2s infinite;
+      border-radius: ${BORDER_RADIUS.md};
+    }
+
+    .skeleton-text {
+      height: 1rem;
+      margin-bottom: 0.5rem;
+      border-radius: ${BORDER_RADIUS.sm};
+    }
+
+    .skeleton-title {
+      height: 2rem;
+      width: 60%;
+      margin-bottom: 1rem;
+      border-radius: ${BORDER_RADIUS.md};
+    }
+
+    .skeleton-card {
+      height: 200px;
+      border-radius: ${BORDER_RADIUS.xl};
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top-color: ${COLORS.primary.light};
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .spinner-lg {
+      width: 40px;
+      height: 40px;
+      border-width: 4px;
+    }
 
     /* Modal */
     .modal-overlay {

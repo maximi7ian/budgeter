@@ -104,15 +104,15 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
   const pageTitle = output.window.mode === 'custom'
     ? `Custom Report (${output.window.from} to ${output.window.to})`
     : output.window.mode === 'weekly'
-    ? 'Weekly Transactions'
-    : 'Monthly Transactions';
+      ? 'Weekly Transactions'
+      : 'Monthly Transactions';
 
   // Generate heading for the page
   const pageHeading = output.window.mode === 'custom'
     ? `📋 Custom Budget Report`
     : output.window.mode === 'weekly'
-    ? '📅 Weekly Transactions'
-    : '📊 Monthly Transactions';
+      ? '📅 Weekly Transactions'
+      : '📊 Monthly Transactions';
 
   // Generate period subtitle
   // Always show inclusive/exclusive for clarity across all modes
@@ -137,12 +137,37 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
           border-radius: ${BORDER_RADIUS.full};
           overflow: hidden;
           position: relative;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         
         .progress-fill {
           height: 100%;
           border-radius: ${BORDER_RADIUS.full};
-          transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+        }
+
+        /* Animated shine effect on progress bar */
+        .progress-fill::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent
+          );
+          animation: progressShine 2s ease-in-out 0.5s;
+        }
+
+        @keyframes progressShine {
+          0% { left: -100%; }
+          100% { left: 200%; }
         }
 
         .stat-card {
@@ -151,6 +176,31 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
           border-radius: ${BORDER_RADIUS.lg};
           padding: ${SPACING.md};
           text-align: center;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .stat-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(16, 185, 129, 0.05));
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+
+        .stat-card:hover {
+          transform: translateY(-4px) scale(1.02);
+          border-color: rgba(255, 255, 255, 0.1);
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-card:hover::before {
+          opacity: 1;
         }
 
         .transaction-item {
@@ -159,7 +209,20 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
           align-items: center;
           padding: ${SPACING.md};
           border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-          transition: background 0.2s;
+          transition: all 0.2s ease;
+          position: relative;
+        }
+
+        .transaction-item::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 3px;
+          background: linear-gradient(135deg, ${COLORS.primary.start}, ${COLORS.accent.light});
+          transform: scaleY(0);
+          transition: transform 0.2s ease;
         }
 
         .transaction-item:last-child {
@@ -167,7 +230,12 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
         }
 
         .transaction-item:hover {
-          background: rgba(255, 255, 255, 0.03);
+          background: rgba(255, 255, 255, 0.05);
+          padding-left: calc(${SPACING.md} + 8px);
+        }
+
+        .transaction-item:hover::before {
+          transform: scaleY(1);
         }
       </style>
     </head>

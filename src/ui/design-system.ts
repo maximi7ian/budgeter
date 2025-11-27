@@ -679,7 +679,7 @@ export function generateBaseCSS(): string {
       visibility: hidden;
       transform: translateY(-10px);
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 1000;
+      z-index: 9999;
     }
 
     .dropdown:hover .dropdown-menu,

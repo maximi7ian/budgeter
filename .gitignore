@@ -9,3 +9,4 @@ config.json
 tokens/
 tokens/*.json
 tokens/*.revoked
+config/financial-advisor-prompt.txt

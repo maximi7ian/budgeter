@@ -40,10 +40,58 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
     largeTransactions.reduce((sum, t) => sum + t.amountGBP, 0)
   );
 
-  // Budget calculations
+  // Budget calculations with nuanced categories
   const budgetRemaining = budget - totalSpend;
   const budgetPercentage = (totalSpend / budget) * 100;
-  const isOverBudget = totalSpend > budget;
+  const overUnder = totalSpend - budget;
+  const percentageVariance = (overUnder / budget) * 100;
+
+  // Determine budget category
+  let budgetCategory: 'over' | 'just-over' | 'under' | 'just-under' | 'on-target';
+  let statusLabel: string;
+  let statusColor: string;
+  let progressColor: string;
+  let borderColor: string;
+
+  if (Math.abs(overUnder) < 1) {
+    budgetCategory = 'on-target';
+    statusLabel = '✓ On Target';
+    statusColor = COLORS.text.muted;
+    progressColor = `linear-gradient(90deg, ${COLORS.primary.start}, ${COLORS.primary.end})`;
+    borderColor = COLORS.text.muted;
+  } else if (overUnder > 0) {
+    // Over budget
+    if (percentageVariance <= 15) {
+      budgetCategory = 'just-over';
+      statusLabel = '⚠️ Slightly Over';
+      statusColor = COLORS.warning;
+      progressColor = `linear-gradient(90deg, ${COLORS.warning}, #f59e0b)`;
+      borderColor = COLORS.warning;
+    } else {
+      budgetCategory = 'over';
+      statusLabel = '⚠️ Over Budget';
+      statusColor = COLORS.danger;
+      progressColor = `linear-gradient(90deg, ${COLORS.warning}, ${COLORS.danger})`;
+      borderColor = COLORS.danger;
+    }
+  } else {
+    // Under budget
+    if (Math.abs(percentageVariance) <= 15) {
+      budgetCategory = 'just-under';
+      statusLabel = '✓ Nearly On Track';
+      statusColor = COLORS.info;
+      progressColor = `linear-gradient(90deg, ${COLORS.info}, ${COLORS.accent.light})`;
+      borderColor = COLORS.info;
+    } else {
+      budgetCategory = 'under';
+      statusLabel = '✓ Well Under Budget';
+      statusColor = COLORS.success;
+      progressColor = `linear-gradient(90deg, ${COLORS.success}, ${COLORS.accent.light})`;
+      borderColor = COLORS.success;
+    }
+  }
+
+  const isOverBudget = overUnder > 0;
 
   // Get category breakdown and top merchants
   const categories = aggregateByCategory(regularTransactions);
@@ -133,13 +181,13 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
               <h1 style="font-size: 2rem; margin-bottom: 0;">${pageHeading}</h1>
               <p style="color: ${COLORS.text.muted};">${periodSubtitle}</p>
             </div>
-            <div class="badge ${isOverBudget ? 'badge-danger' : 'badge-success'}" style="font-size: 1rem; padding: 0.5rem 1rem;">
-              ${isOverBudget ? "⚠️ Over Budget" : "✓ On Track"}
+            <div class="badge" style="font-size: 1rem; padding: 0.5rem 1rem; background: ${statusColor}20; color: ${statusColor}; border: 1px solid ${statusColor};">
+              ${statusLabel}
             </div>
           </div>
 
           <!-- Budget Progress Section -->
-          <div class="glass-card" style="margin-bottom: ${SPACING.xl}; ${isOverBudget ? `border-left: 4px solid ${COLORS.danger};` : `border-left: 4px solid ${COLORS.success};`}">
+          <div class="glass-card" style="margin-bottom: ${SPACING.xl}; border-left: 4px solid ${borderColor};">
             <div class="flex justify-between items-center mb-4">
               <h3 style="margin: 0;">Budget Status</h3>
               <span style="color: ${COLORS.text.muted}; font-size: 0.9rem;">
@@ -152,8 +200,8 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
               <div class="progress-bar" style="height: 24px; margin-bottom: ${SPACING.xs};">
                 <div class="progress-fill" style="
                   width: ${Math.min(budgetPercentage, 100)}%;
-                  background: ${isOverBudget ? `linear-gradient(90deg, ${COLORS.warning}, ${COLORS.danger})` : `linear-gradient(90deg, ${COLORS.success}, ${COLORS.accent.light})`};
-                  box-shadow: 0 0 20px ${isOverBudget ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)'};
+                  background: ${progressColor};
+                  box-shadow: 0 0 20px ${statusColor}40;
                 "></div>
               </div>
               <div class="flex justify-between" style="font-size: 0.8rem; color: ${COLORS.text.muted}; font-weight: 600;">
@@ -170,7 +218,7 @@ export function renderEnhancedTransactionsPage(output: TransactionOutput): strin
               </div>
               <div class="stat-card">
                 <div style="font-size: 0.75rem; color: ${COLORS.text.muted}; text-transform: uppercase; margin-bottom: ${SPACING.xs};">${isOverBudget ? "Over By" : "Remaining"}</div>
-                <div style="font-size: 1.25rem; font-weight: 700; color: ${isOverBudget ? COLORS.danger : COLORS.success};">
+                <div style="font-size: 1.25rem; font-weight: 700; color: ${statusColor};">
                   £${Math.abs(budgetRemaining).toFixed(2)}
                 </div>
               </div>

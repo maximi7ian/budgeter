@@ -130,19 +130,34 @@ export async function sendBudgetAlertForPeriod(
   const overUnder = budget ? totalSpend - budget : null;
   const remainingBudget = budget ? budget - totalSpend : 0;
 
-  // Determine over/under type
-  let overUnderType: 'over' | 'under' | 'on-target' = 'on-target';
+  // Determine over/under type with nuanced categories
+  let overUnderType: 'over' | 'just-over' | 'under' | 'just-under' | 'on-target' = 'on-target';
   let overUnderLabel = 'On target';
-  if (overUnder !== null) {
+
+  if (overUnder !== null && budget) {
+    const percentageVariance = (overUnder / budget) * 100;
+
     if (Math.abs(overUnder) < 1) {
       overUnderType = 'on-target';
       overUnderLabel = 'Right on budget!';
     } else if (overUnder > 0) {
-      overUnderType = 'over';
-      overUnderLabel = `${formatMoney(overUnder)} over budget`;
+      // Over budget
+      if (percentageVariance <= 15) {
+        overUnderType = 'just-over';
+        overUnderLabel = `${formatMoney(overUnder)} over budget (${percentageVariance.toFixed(1)}%)`;
+      } else {
+        overUnderType = 'over';
+        overUnderLabel = `${formatMoney(overUnder)} over budget (${percentageVariance.toFixed(1)}%)`;
+      }
     } else {
-      overUnderType = 'under';
-      overUnderLabel = `${formatMoney(Math.abs(overUnder))} under budget`;
+      // Under budget
+      if (Math.abs(percentageVariance) <= 15) {
+        overUnderType = 'just-under';
+        overUnderLabel = `${formatMoney(Math.abs(overUnder))} under budget (${Math.abs(percentageVariance).toFixed(1)}%)`;
+      } else {
+        overUnderType = 'under';
+        overUnderLabel = `${formatMoney(Math.abs(overUnder))} under budget (${Math.abs(percentageVariance).toFixed(1)}%)`;
+      }
     }
   }
 

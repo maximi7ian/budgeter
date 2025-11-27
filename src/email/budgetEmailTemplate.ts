@@ -6,7 +6,13 @@
 import { BudgetEmailTemplateData } from "./types";
 
 export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
-  const overUnderColor = data.overUnderType === 'over' ? '#ef4444' : data.overUnderType === 'under' ? '#10b981' : '#6b7280';
+  // Color mapping for budget categories
+  const overUnderColor =
+    data.overUnderType === 'over' ? '#ef4444' :      // Red (significantly over)
+    data.overUnderType === 'just-over' ? '#f59e0b' : // Orange (slightly over, within 15%)
+    data.overUnderType === 'under' ? '#10b981' :     // Green (significantly under)
+    data.overUnderType === 'just-under' ? '#3b82f6' : // Blue (slightly under, within 15%)
+    '#6b7280';                                         // Gray (on-target)
 
   return `
 <!DOCTYPE html>
@@ -120,7 +126,13 @@ export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
                       <tr>
                         <td style="text-align: center;">
                           <div style="font-size: 11px; color: ${overUnderColor}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
-                            ${data.overUnderType === 'over' ? 'OVER BUDGET' : 'UNDER BUDGET'}
+                            ${
+                              data.overUnderType === 'over' ? 'OVER BUDGET' :
+                              data.overUnderType === 'just-over' ? 'SLIGHTLY OVER' :
+                              data.overUnderType === 'under' ? 'UNDER BUDGET' :
+                              data.overUnderType === 'just-under' ? 'SLIGHTLY UNDER' :
+                              'ON TARGET'
+                            }
                           </div>
                           <div class="stat-value" style="font-size: 36px; color: ${overUnderColor}; font-weight: 800; letter-spacing: -1px;">${data.remainingBudget.replace('-', '')}</div>
                         </td>
@@ -258,7 +270,7 @@ export function renderBudgetEmail(data: BudgetEmailTemplateData): string {
                       📄 Excluded Expenses
                     </h2>
                     <p class="text-secondary" style="margin: 0 0 16px; font-size: 13px; font-weight: 600;">
-                      Work reimbursements and other filtered expenses:
+                      Purchases to exclue and other filtered expenses:
                     </p>
                     <div class="text-primary" style="font-size: 14px; line-height: 1.6;">
                       ${data.excludedExpensesHtml}

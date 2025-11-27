@@ -752,14 +752,35 @@ app.post("/api/preview-email", requireAuth, async (req: Request, res: Response) 
     const periodLabel = window === "weekly" ? "Weekly" : "Monthly";
     const emoji = window === "weekly" ? "📅" : "📊";
 
-    // Calculate budget metrics
+    // Calculate budget metrics with nuanced categories
     const overUnder = totalSpend - budget;
-    const overUnderLabel = overUnder > 0
-      ? `£${Math.abs(overUnder).toFixed(2)} over budget`
-      : overUnder < 0
-        ? `£${Math.abs(overUnder).toFixed(2)} under budget`
-        : "On target";
-    const overUnderType: 'over' | 'under' | 'on-target' = overUnder > 0 ? 'over' : overUnder < 0 ? 'under' : 'on-target';
+    const percentageVariance = (overUnder / budget) * 100;
+
+    let overUnderLabel: string;
+    let overUnderType: 'over' | 'just-over' | 'under' | 'just-under' | 'on-target';
+
+    if (overUnder === 0) {
+      overUnderLabel = "On target";
+      overUnderType = 'on-target';
+    } else if (overUnder > 0) {
+      // Over budget
+      if (percentageVariance <= 15) {
+        overUnderLabel = `£${Math.abs(overUnder).toFixed(2)} over budget (${percentageVariance.toFixed(1)}%)`;
+        overUnderType = 'just-over';
+      } else {
+        overUnderLabel = `£${Math.abs(overUnder).toFixed(2)} over budget (${percentageVariance.toFixed(1)}%)`;
+        overUnderType = 'over';
+      }
+    } else {
+      // Under budget
+      if (Math.abs(percentageVariance) <= 15) {
+        overUnderLabel = `£${Math.abs(overUnder).toFixed(2)} under budget (${Math.abs(percentageVariance).toFixed(1)}%)`;
+        overUnderType = 'just-under';
+      } else {
+        overUnderLabel = `£${Math.abs(overUnder).toFixed(2)} under budget (${Math.abs(percentageVariance).toFixed(1)}%)`;
+        overUnderType = 'under';
+      }
+    }
 
     // Average transaction
     const avgTransaction = regularTransactions.length > 0

@@ -30,7 +30,7 @@ export interface BudgetEmailTemplateData {
   totalSpend: string;         // formatted, e.g. "£482.10"
   budget: string;             // formatted budget
   overUnderLabel: string;     // e.g. "£17.90 under budget" or "£26.50 over budget"
-  overUnderType: 'over' | 'under' | 'on-target';
+  overUnderType: 'over' | 'just-over' | 'under' | 'just-under' | 'on-target';
   transactionCount: number;
   avgTransaction: string;     // formatted
   remainingBudget: string;    // formatted, can be negative

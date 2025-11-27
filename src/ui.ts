@@ -84,66 +84,62 @@ export function renderHomePage(
           <div style="
             background: ${isExcluded ? 'rgba(15, 23, 42, 0.2)' : 'rgba(15, 23, 42, 0.4)'};
             border: 1px solid ${isExcluded ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255, 255, 255, 0.05)'};
+            border-left: 3px solid ${isExcluded ? COLORS.danger : typeBadge.color};
             border-radius: ${BORDER_RADIUS.md};
             padding: ${SPACING.sm} ${SPACING.md};
             display: flex;
-            flex-direction: column;
-            gap: ${SPACING.xs};
+            align-items: center;
+            gap: ${SPACING.md};
             transition: all 0.2s;
             opacity: ${isExcluded ? '0.6' : '1'};
             position: relative;
           ">
-            ${isExcluded ? `
-              <div style="
-                position: absolute;
-                top: ${SPACING.xs};
-                right: ${SPACING.xs};
-                background: ${COLORS.danger}20;
-                color: ${COLORS.danger};
-                padding: 0.15rem 0.4rem;
-                border-radius: ${BORDER_RADIUS.sm};
-                font-size: 0.65rem;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-              ">🚫 Excluded</div>
-            ` : ''}
-            <div style="display: flex; align-items: center; gap: ${SPACING.sm};">
-              <div style="font-size: 1.25rem; ${isExcluded ? 'filter: grayscale(50%);' : ''}">${typeBadge.emoji}</div>
-              <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            <div style="font-size: 1.5rem; ${isExcluded ? 'filter: grayscale(50%);' : ''}">${typeBadge.emoji}</div>
+
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: center; gap: ${SPACING.sm}; margin-bottom: 2px;">
+                <div style="font-weight: 600; font-size: 0.95rem;">
                   ${item.display_name}
                 </div>
-                <div style="display: flex; gap: ${SPACING.xs}; align-items: center; flex-wrap: wrap;">
-                  <span class="badge" style="background: ${typeBadge.color}20; color: ${typeBadge.color}; font-size: 0.7rem;">
-                    ${typeBadge.label}
-                  </span>
-                  <span style="font-size: 0.75rem; color: ${COLORS.text.muted};">${item.currency}</span>
-                  ${isExcluded ? `
-                    <span style="font-size: 0.7rem; color: ${COLORS.danger}; font-style: italic;">
-                      Not in budget
-                    </span>
-                  ` : ''}
-                </div>
+                ${isExcluded ? `
+                  <span style="
+                    background: ${COLORS.danger}20;
+                    color: ${COLORS.danger};
+                    padding: 0.1rem 0.35rem;
+                    border-radius: ${BORDER_RADIUS.sm};
+                    font-size: 0.6rem;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                  ">Excluded</span>
+                ` : ''}
+              </div>
+              <div style="display: flex; gap: ${SPACING.xs}; align-items: center;">
+                <span class="badge" style="background: ${typeBadge.color}20; color: ${typeBadge.color}; font-size: 0.65rem; padding: 0.1rem 0.35rem;">
+                  ${typeBadge.label}
+                </span>
+                <span style="font-size: 0.7rem; color: ${COLORS.text.muted};">${item.currency}</span>
               </div>
             </div>
+
             <div style="
               display: flex;
               align-items: center;
               gap: ${SPACING.xs};
-              background: rgba(0, 0, 0, 0.2);
-              padding: ${SPACING.xs} ${SPACING.sm};
+              background: rgba(0, 0, 0, 0.3);
+              padding: 0.25rem 0.5rem;
               border-radius: ${BORDER_RADIUS.sm};
               font-family: 'Monaco', 'Courier New', monospace;
-              font-size: 0.7rem;
+              font-size: 0.65rem;
+              min-width: 0;
+              max-width: 280px;
             ">
-              <span style="color: ${COLORS.text.muted}; flex-shrink: 0;">ID:</span>
+              <span style="color: ${COLORS.text.muted}; flex-shrink: 0; font-size: 0.6rem;">ID:</span>
               <code style="
                 color: ${COLORS.info};
-                flex: 1;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
+                flex: 1;
               " title="${itemId}">${itemId}</code>
               <button
                 onclick="navigator.clipboard.writeText('${itemId}').then(() => {
@@ -162,7 +158,7 @@ export function renderHomePage(
                   color: ${COLORS.text.muted};
                   cursor: pointer;
                   padding: 0;
-                  font-size: 0.8rem;
+                  font-size: 0.75rem;
                   transition: color 0.2s;
                   flex-shrink: 0;
                 "
@@ -174,23 +170,23 @@ export function renderHomePage(
       }).join('');
 
       return `
-        <div class="glass-card" style="margin-bottom: ${SPACING.md}; padding: ${SPACING.md};">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: ${SPACING.md}; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: ${SPACING.sm};">
+        <div class="glass-card" style="margin-bottom: ${SPACING.sm}; padding: ${SPACING.sm} ${SPACING.md};">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: ${SPACING.sm}; padding-bottom: ${SPACING.xs}; border-bottom: 1px solid rgba(255,255,255,0.05);">
             <div style="display: flex; align-items: center; gap: ${SPACING.sm};">
-              <div style="font-size: 1.5rem;">${providerIcon}</div>
+              <div style="font-size: 1.25rem;">${providerIcon}</div>
               <div>
-                <div style="font-weight: 700;">${conn.providers.join(", ")}</div>
-                <div style="font-size: 0.8rem; color: ${COLORS.text.muted};">${conn.items.length} ${conn.items.length === 1 ? 'account' : 'accounts'}</div>
+                <div style="font-weight: 700; font-size: 0.95rem;">${conn.providers.join(", ")}</div>
+                <div style="font-size: 0.7rem; color: ${COLORS.text.muted};">${conn.items.length} ${conn.items.length === 1 ? 'account' : 'accounts'}</div>
               </div>
             </div>
             <form method="POST" action="/disconnect/${conn.tokenFileName}" style="margin: 0;"
                   onsubmit="return confirm('Disconnect ${conn.providers.join(", ")}? This will remove all associated accounts.');">
-              <button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+              <button type="submit" class="btn btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">
                 Disconnect
               </button>
             </form>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: ${SPACING.sm};">
+          <div style="display: flex; flex-direction: column; gap: ${SPACING.xs};">
             ${itemsHtml}
           </div>
         </div>

@@ -427,12 +427,30 @@ export function renderLoginPage(error?: string): string {
  */
 export function renderSettingsPage(success?: string, error?: string): string {
   const env = process.env;
+  const { getWeeklyAllowance, getMonthlyAllowance, getLargeTransactionThreshold } = require("./config");
+
   // Check for Gmail OAuth2 or basic SMTP configuration
   const emailConfigured = !!(env.GMAIL_USER && env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET && env.GMAIL_REFRESH_TOKEN) || !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS);
   const aiConfigured = !!env.OPENAI_API_KEY;
   const sheetsConfigured = !!env.GOOGLE_SHEETS_SPREADSHEET_ID;
-  const weeklySchedule = !!env.WEEKLY_CRON_SCHEDULE;
-  const monthlySchedule = !!env.MONTHLY_CRON_SCHEDULE;
+  const weeklySchedule = env.WEEKLY_CRON_SCHEDULE;
+  const monthlySchedule = env.MONTHLY_CRON_SCHEDULE;
+
+  // Get budget values
+  const weeklyBudget = getWeeklyAllowance();
+  const monthlyBudget = getMonthlyAllowance();
+  const largeThreshold = getLargeTransactionThreshold();
+
+  // Get email recipient
+  const emailRecipient = env.EMAIL_TO || env.GMAIL_USER || env.SMTP_USER || 'Not configured';
+
+  // Email type
+  const emailType = env.GMAIL_USER ? 'Gmail OAuth2' : env.SMTP_HOST ? 'SMTP' : 'Not configured';
+
+  // Sheets ID (truncated for display)
+  const sheetsId = env.GOOGLE_SHEETS_SPREADSHEET_ID
+    ? env.GOOGLE_SHEETS_SPREADSHEET_ID.substring(0, 20) + '...'
+    : 'Not configured';
 
   return `
     <!DOCTYPE html>
@@ -466,52 +484,120 @@ export function renderSettingsPage(success?: string, error?: string): string {
             </div>
           ` : ''}
 
-          <div class="glass-card" style="margin-bottom: ${SPACING.xl};">
+          <!-- Budget Configuration -->
+          <div class="glass-card" style="margin-bottom: ${SPACING.lg};">
+            <h2 style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: ${SPACING.sm}; margin-bottom: ${SPACING.lg};">
+              💰 Budget Configuration
+            </h2>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: ${SPACING.md};">
+              <div style="padding: ${SPACING.md}; background: rgba(255,255,255,0.03); border-radius: ${BORDER_RADIUS.lg};">
+                <div style="font-size: 0.75rem; color: ${COLORS.text.muted}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: ${SPACING.xs};">Weekly Budget</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: ${COLORS.accent.light};">£${weeklyBudget.toFixed(2)}</div>
+              </div>
+
+              <div style="padding: ${SPACING.md}; background: rgba(255,255,255,0.03); border-radius: ${BORDER_RADIUS.lg};">
+                <div style="font-size: 0.75rem; color: ${COLORS.text.muted}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: ${SPACING.xs};">Monthly Budget</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: ${COLORS.accent.light};">£${monthlyBudget.toFixed(2)}</div>
+              </div>
+
+              <div style="padding: ${SPACING.md}; background: rgba(255,255,255,0.03); border-radius: ${BORDER_RADIUS.lg};">
+                <div style="font-size: 0.75rem; color: ${COLORS.text.muted}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: ${SPACING.xs};">Large Transaction</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: ${COLORS.warning};">£${largeThreshold.toFixed(2)}</div>
+                <div style="font-size: 0.7rem; color: ${COLORS.text.muted}; margin-top: ${SPACING.xs};">Tracked separately</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Automated Schedules -->
+          ${weeklySchedule || monthlySchedule ? `
+          <div class="glass-card" style="margin-bottom: ${SPACING.lg};">
+            <h2 style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: ${SPACING.sm}; margin-bottom: ${SPACING.lg};">
+              ⏰ Automated Schedules
+            </h2>
+
+            <div style="display: grid; gap: ${SPACING.md};">
+              ${weeklySchedule ? `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: ${SPACING.md}; background: rgba(255,255,255,0.03); border-radius: ${BORDER_RADIUS.lg};">
+                <div>
+                  <div style="font-weight: 600; margin-bottom: ${SPACING.xs};">📅 Weekly Reports</div>
+                  <div style="font-size: 0.85rem; font-family: ${FONTS.mono}; color: ${COLORS.text.muted};">${weeklySchedule}</div>
+                </div>
+                <span class="badge badge-success">Active</span>
+              </div>
+              ` : ''}
+
+              ${monthlySchedule ? `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: ${SPACING.md}; background: rgba(255,255,255,0.03); border-radius: ${BORDER_RADIUS.lg};">
+                <div>
+                  <div style="font-weight: 600; margin-bottom: ${SPACING.xs};">📊 Monthly Reports</div>
+                  <div style="font-size: 0.85rem; font-family: ${FONTS.mono}; color: ${COLORS.text.muted};">${monthlySchedule}</div>
+                </div>
+                <span class="badge badge-success">Active</span>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Integrations -->
+          <div class="glass-card" style="margin-bottom: ${SPACING.lg};">
             <h2 style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: ${SPACING.sm}; margin-bottom: ${SPACING.lg};">
               🔌 Integrations
             </h2>
-            
+
             <div style="display: grid; gap: ${SPACING.md};">
-              <!-- OpenAI -->
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: ${SPACING.md}; background: rgba(255,255,255,0.03); border-radius: ${BORDER_RADIUS.lg};">
-                <div style="display: flex; align-items: center; gap: ${SPACING.md};">
-                  <div style="font-size: 1.5rem;">🤖</div>
-                  <div>
-                    <div style="font-weight: 600;">OpenAI (AI Insights)</div>
-                    <div style="font-size: 0.8rem; color: ${COLORS.text.muted};">Required for spending analysis</div>
+              <!-- Email -->
+              <div style="padding: ${SPACING.md}; background: rgba(255,255,255,0.03); border-radius: ${BORDER_RADIUS.lg};">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: ${SPACING.sm};">
+                  <div style="display: flex; align-items: center; gap: ${SPACING.md};">
+                    <div style="font-size: 1.5rem;">✉️</div>
+                    <div style="font-weight: 600;">Email Service</div>
                   </div>
+                  <span class="badge ${emailConfigured ? 'badge-success' : 'badge-warning'}">
+                    ${emailConfigured ? 'Configured' : 'Not Configured'}
+                  </span>
                 </div>
-                <span class="badge ${aiConfigured ? 'badge-success' : 'badge-warning'}">
-                  ${aiConfigured ? 'Active' : 'Missing API Key'}
-                </span>
+                ${emailConfigured ? `
+                <div style="font-size: 0.85rem; color: ${COLORS.text.muted}; margin-left: 2.5rem;">
+                  <div style="margin-bottom: ${SPACING.xs};"><strong>Type:</strong> ${emailType}</div>
+                  <div><strong>Recipient:</strong> ${emailRecipient}</div>
+                </div>
+                ` : '<div style="font-size: 0.85rem; color: ${COLORS.text.muted}; margin-left: 2.5rem;">Configure email to send automated reports</div>'}
+              </div>
+
+              <!-- OpenAI -->
+              <div style="padding: ${SPACING.md}; background: rgba(255,255,255,0.03); border-radius: ${BORDER_RADIUS.lg};">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div style="display: flex; align-items: center; gap: ${SPACING.md};">
+                    <div style="font-size: 1.5rem;">🤖</div>
+                    <div>
+                      <div style="font-weight: 600;">OpenAI</div>
+                      <div style="font-size: 0.8rem; color: ${COLORS.text.muted};">AI-powered spending insights</div>
+                    </div>
+                  </div>
+                  <span class="badge ${aiConfigured ? 'badge-success' : 'badge-warning'}">
+                    ${aiConfigured ? 'Active' : 'Not Configured'}
+                  </span>
+                </div>
               </div>
 
               <!-- Google Sheets -->
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: ${SPACING.md}; background: rgba(255,255,255,0.03); border-radius: ${BORDER_RADIUS.lg};">
-                <div style="display: flex; align-items: center; gap: ${SPACING.md};">
-                  <div style="font-size: 1.5rem;">📊</div>
-                  <div>
+              <div style="padding: ${SPACING.md}; background: rgba(255,255,255,0.03); border-radius: ${BORDER_RADIUS.lg};">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: ${SPACING.sm};">
+                  <div style="display: flex; align-items: center; gap: ${SPACING.md};">
+                    <div style="font-size: 1.5rem;">📊</div>
                     <div style="font-weight: 600;">Google Sheets</div>
-                    <div style="font-size: 0.8rem; color: ${COLORS.text.muted};">For excluded expenses</div>
                   </div>
+                  <span class="badge ${sheetsConfigured ? 'badge-success' : 'badge-warning'}">
+                    ${sheetsConfigured ? 'Configured' : 'Not Configured'}
+                  </span>
                 </div>
-                <span class="badge ${sheetsConfigured ? 'badge-success' : 'badge-warning'}">
-                  ${sheetsConfigured ? 'Configured' : 'Not Configured'}
-                </span>
-              </div>
-
-              <!-- Email -->
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: ${SPACING.md}; background: rgba(255,255,255,0.03); border-radius: ${BORDER_RADIUS.lg};">
-                <div style="display: flex; align-items: center; gap: ${SPACING.md};">
-                  <div style="font-size: 1.5rem;">✉️</div>
-                  <div>
-                    <div style="font-weight: 600;">Email Service</div>
-                    <div style="font-size: 0.8rem; color: ${COLORS.text.muted};">For sending reports</div>
-                  </div>
+                ${sheetsConfigured ? `
+                <div style="font-size: 0.85rem; color: ${COLORS.text.muted}; margin-left: 2.5rem;">
+                  <div><strong>Sheet ID:</strong> <code style="font-family: ${FONTS.mono}; font-size: 0.8rem;">${sheetsId}</code></div>
                 </div>
-                <span class="badge ${emailConfigured ? 'badge-success' : 'badge-warning'}">
-                  ${emailConfigured ? 'Configured' : 'Not Configured'}
-                </span>
+                ` : '<div style="font-size: 0.85rem; color: ${COLORS.text.muted}; margin-left: 2.5rem;">Optional: Track excluded expenses</div>'}
               </div>
             </div>
           </div>

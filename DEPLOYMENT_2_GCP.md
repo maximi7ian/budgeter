@@ -799,4 +799,21 @@ gcloud compute ssh budgeter-vm
 pm2 restart budgeter
 ```
 
+---
+
+## Clean Reset (Troubleshooting)
+
+If PM2 gets into a bad state or you need a fresh start:
+
+```bash
+# On the VM
+pm2 delete budgeter
+pm2 start dist/server.js --name budgeter
+pm2 save
+```
+
+This completely removes the old PM2 process, starts fresh, and saves the new configuration.
+
+---
+
 Enjoy your personal finance dashboard! 🎉

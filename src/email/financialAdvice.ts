@@ -8,7 +8,7 @@ import fs from "fs";
 import path from "path";
 import { AdviceInput, AIResponse, AICategory } from "./types";
 
-const ADVISOR_PROMPT_PATH = path.join(process.cwd(), "financial-advisor-prompt.txt");
+const ADVISOR_PROMPT_PATH = path.join(process.cwd(), "config", "financial-advisor-prompt.txt");
 
 /**
  * Load user-editable financial advisor prompt from file
@@ -20,7 +20,7 @@ function loadAdvisorPrompt(): string {
       return fs.readFileSync(ADVISOR_PROMPT_PATH, "utf-8");
     }
   } catch (error: any) {
-    console.warn("Failed to load financial-advisor-prompt.txt, using default:", error.message);
+    console.warn("Failed to load config/financial-advisor-prompt.txt, using default:", error.message);
   }
 
   // Default fallback (user-friendly instructions only)
